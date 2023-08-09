@@ -40,7 +40,7 @@ func CheckLogin(c *fiber.Ctx) error {
 		})
 	}
 
-	result, ruleadmin, tipeadmin, err := models.Login_Model(client.Username, client.Password, client.Ipaddress)
+	result, idagenadmin, ruleadmin, tipeadmin, err := models.Login_Model(client.Username, client.Password, client.Ipaddress)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -59,7 +59,7 @@ func CheckLogin(c *fiber.Ctx) error {
 			})
 
 	} else {
-		dataclient := client.Username + "==" + ruleadmin + "==" + tipeadmin
+		dataclient := idagenadmin + "==" + ruleadmin + "==" + tipeadmin
 		dataclient_encr, keymap := helpers.Encryption(dataclient)
 		dataclient_encr_final := dataclient_encr + "|" + strconv.Itoa(keymap)
 		t, err := helpers.GenerateNewAccessToken(dataclient_encr_final)
@@ -89,8 +89,8 @@ func Home(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_username, idruleadmin, tipeadmin := helpers.Parsing_Decry(temp_decp, "==")
-	log.Println(client_username)
+	client_idagenadmin, idruleadmin, tipeadmin := helpers.Parsing_Decry(temp_decp, "==")
+	log.Println(client_idagenadmin)
 	log.Println(idruleadmin)
 	log.Println(tipeadmin)
 	log.Println(client.Page)
