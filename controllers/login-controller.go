@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"log"
+	"fmt"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
@@ -40,7 +40,7 @@ func CheckLogin(c *fiber.Ctx) error {
 		})
 	}
 
-	result, idagenadmin, ruleadmin, tipeadmin, err := models.Login_Model(client.Username, client.Password, client.Ipaddress)
+	result, idmasteragen, idagenadmin, ruleadmin, tipeadmin, err := models.Login_Model(client.Username, client.Password, client.Ipaddress)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -59,7 +59,7 @@ func CheckLogin(c *fiber.Ctx) error {
 			})
 
 	} else {
-		dataclient := idagenadmin + "==" + ruleadmin + "==" + tipeadmin
+		dataclient := idmasteragen + "==" + idagenadmin + "==" + ruleadmin + "==" + tipeadmin
 		dataclient_encr, keymap := helpers.Encryption(dataclient)
 		dataclient_encr_final := dataclient_encr + "|" + strconv.Itoa(keymap)
 		t, err := helpers.GenerateNewAccessToken(dataclient_encr_final)
@@ -89,14 +89,15 @@ func Home(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_idagenadmin, idruleadmin, tipeadmin := helpers.Parsing_Decry(temp_decp, "==")
-	log.Println(client_idagenadmin)
-	log.Println(idruleadmin)
-	log.Println(tipeadmin)
-	log.Println(client.Page)
+	client_idmasteragen, client_idagenadmin, idruleadmin, tipeadmin := helpers.Parsing_Decry(temp_decp, "==")
+	fmt.Println(client_idmasteragen)
+	fmt.Println(client_idagenadmin)
+	fmt.Println(idruleadmin)
+	fmt.Println(tipeadmin)
+	fmt.Println(client.Page)
 
 	if tipeadmin == "ADMIN" {
-		ruleadmin := models.Get_AdminRule("ruleadmingroup", idruleadmin)
+		ruleadmin := models.Get_AdminRule("ruleadmingroup", client_idmasteragen, idruleadmin)
 		flag := models.Get_listitemsearch(ruleadmin, ",", client.Page)
 		if !flag {
 			c.Status(fiber.StatusForbidden)

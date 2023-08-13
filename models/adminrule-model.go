@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,13 +11,15 @@ import (
 	"github.com/nikitamirzani323/wl_agen_backend_api/db"
 	"github.com/nikitamirzani323/wl_agen_backend_api/entities"
 	"github.com/nikitamirzani323/wl_agen_backend_api/helpers"
+	"github.com/nleeper/goment"
 )
 
-const database_adminrule_local = configs.DB_tbl_admingroup
+const database_agenadminrule_local = configs.DB_tbl_mst_master_agen_admin_rule
+const database_agen_local = configs.DB_tbl_mst_master_agen
 
-func Fetch_adminruleHome() (helpers.Response, error) {
-	var obj entities.Model_adminruleall
-	var arraobj []entities.Model_adminruleall
+func Fetch_adminruleHome(idmasteragen string) (helpers.Response, error) {
+	var obj entities.Model_agenadminrule
+	var arraobj []entities.Model_agenadminrule
 	var res helpers.Response
 	msg := "Data Not Found"
 	con := db.CreateCon()
@@ -24,28 +27,45 @@ func Fetch_adminruleHome() (helpers.Response, error) {
 	start := time.Now()
 
 	sql_select := `SELECT 
-			idadmin , ruleadmingroup 
-			FROM ` + database_adminrule_local + ` 
-			ORDER BY idadmin ASC  
+			idagenadminrule, nmagenadminrule, ruleagenadminrule, 
+			createagenadminrule, to_char(COALESCE(createagenadminruledate,now()), 'YYYY-MM-DD HH24:MI:SS'), 
+			updateagenadminrule, to_char(COALESCE(updatedateagenadminrule,now()), 'YYYY-MM-DD HH24:MI:SS') 
+			FROM ` + database_agenadminrule_local + `  
+			WHERE idmasteragen = $1 
+			ORDER BY A.idagenadminrule ASC  
 		`
 
-	row, err := con.QueryContext(ctx, sql_select)
+	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
 
 	var no int = 0
 	helpers.ErrorCheck(err)
 	for row.Next() {
 		no += 1
 		var (
-			idadmin_db, ruleadmingroup_db string
+			idagenadminrule_db                                                                                     int
+			nmagenadminrule_db, ruleagenadminrule_db                                                               string
+			createagenadminrule_db, createagenadminruledate_db, updateagenadminrule_db, updatedateagenadminrule_db string
 		)
 
-		err = row.Scan(&idadmin_db, &ruleadmingroup_db)
+		err = row.Scan(&idagenadminrule_db, &nmagenadminrule_db, &ruleagenadminrule_db,
+			&createagenadminrule_db, &createagenadminruledate_db, &updateagenadminrule_db, &updatedateagenadminrule_db)
 
 		helpers.ErrorCheck(err)
 
-		obj.Idadmin = idadmin_db
-		obj.Ruleadmingroup = ruleadmingroup_db
-		arraobj = append(arraobj, obj)
+		create := ""
+		update := ""
+		if createagenadminrule_db != "" {
+			create = createagenadminrule_db + ", " + createagenadminruledate_db
+		}
+		if updateagenadminrule_db != "" {
+			update = updateagenadminrule_db + ", " + updatedateagenadminrule_db
+		}
+
+		obj.Agenadminrule_id = idagenadminrule_db
+		obj.Agenadminrule_name = nmagenadminrule_db
+		obj.Agenadminrule_rule = ruleagenadminrule_db
+		obj.Agenadminrule_create = create
+		obj.Agenadminrule_update = update
 		msg = "Success"
 	}
 	defer row.Close()
@@ -57,41 +77,45 @@ func Fetch_adminruleHome() (helpers.Response, error) {
 
 	return res, nil
 }
-func Save_adminrule(admin, idadmin, rule, sData string) (helpers.Response, error) {
+func Save_adminrule(admin, idmasteragen, nmrule, rule, sData string, idrecord int) (helpers.Response, error) {
 	var res helpers.Response
 	msg := "Failed"
+	tglnow, _ := goment.New()
 	render_page := time.Now()
-	flag := false
 
 	if sData == "New" {
-		flag = CheckDB(database_adminrule_local, "idadmin ", idadmin)
-		if !flag {
-			sql_insert := `
+		sql_insert := `
 				insert into
-				` + database_adminrule_local + ` (
-					idadmin 
+				` + database_agenadminrule_local + ` (
+					idagenadminrule, idmasteragen, nmagenadminrule,
+					createagenadminrule, createagenadminruledate   
 				) values (
-					$1
+					$1,$2,$3,
+					$4,$5
 				) 
 			`
-			flag_insert, msg_insert := Exec_SQL(sql_insert, database_adminrule_local, "INSERT", idadmin)
+		field_column := database_agenadminrule_local + tglnow.Format("YYYY")
+		idrecord_counter := Get_counter(field_column)
+		flag_insert, msg_insert := Exec_SQL(sql_insert, database_agenadminrule_local, "INSERT",
+			tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idmasteragen, nmrule,
+			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
 
-			if flag_insert {
-				msg = "Succes"
-			} else {
-				fmt.Println(msg_insert)
-			}
+		if flag_insert {
+			msg = "Succes"
 		} else {
-			msg = "Duplicate Entry"
+			fmt.Println(msg_insert)
 		}
 	} else {
 		sql_update := `
 				UPDATE 
-				` + database_adminrule_local + `   
-				SET ruleadmingroup=$1 
-				WHERE idadmin=$2 
+				` + database_agenadminrule_local + `   
+				SET nmagenadminrule=$1, ruleagenadminrule=$2, 
+				updateagenadminrule=$3, updatedateagenadminrule=$4    
+				WHERE idagenadminrule=$5 AND idmasteragen=$6   
 			`
-		flag_update, msg_update := Exec_SQL(sql_update, database_adminrule_local, "UPDATE", rule, idadmin)
+		flag_update, msg_update := Exec_SQL(sql_update, database_agenadminrule_local, "UPDATE",
+			nmrule, rule,
+			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord, idmasteragen)
 
 		if flag_update {
 			msg = "Succes"

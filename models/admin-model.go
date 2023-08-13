@@ -2,8 +2,8 @@ package models
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,9 +14,9 @@ import (
 	"github.com/nleeper/goment"
 )
 
-const database_admin_local = configs.DB_tbl_admin
+const database_admin_local = configs.DB_tbl_mst_master_agen_admin
 
-func Fetch_adminHome() (helpers.ResponseAdmin, error) {
+func Fetch_adminHome(idmasteragen string) (helpers.ResponseAdmin, error) {
 	var obj entities.Model_admin
 	var arraobj []entities.Model_admin
 	var res helpers.ResponseAdmin
@@ -26,43 +26,63 @@ func Fetch_adminHome() (helpers.ResponseAdmin, error) {
 	start := time.Now()
 
 	sql_select := `SELECT 
-			username , name, idadmin,
-			statuslogin, to_char(COALESCE(lastlogin,now()), 'YYYY-MM-DD HH24:MI:SS'), joindate, 
-			ipaddress   
-			FROM ` + database_admin_local + ` 
-			ORDER BY lastlogin DESC 
+			A.idagenadmin, A.idagenadminrule, A.tipeagen_admin,
+			B.nmagenadminrule, A.usernameagen_admin , A.nameagen_admin, A.phone1agen_admin, A.phone2agen_admin, 
+			A.statusagenadmin, to_char(COALESCE(A.lastloginagen_admin,now()), 'YYYY-MM-DD HH24:MI:SS'), A.ipaddress_admin, 
+			A.createagenadminrule, to_char(COALESCE(A.createagenadminruledate,now()), 'YYYY-MM-DD HH24:MI:SS'), 
+			A.updateagenadminrule, to_char(COALESCE(A.updatedateagenadminrule,now()), 'YYYY-MM-DD HH24:MI:SS')   
+			FROM ` + database_admin_local + ` as A 
+			FROM ` + database_admin_local + ` as B on B.idagenadminrule = A.idagenadminrule 
+			WHERE A.idmasteragen=$1 
+			ORDER BY A.lastloginagen_admin DESC 
 		`
 
-	row, err := con.QueryContext(ctx, sql_select)
+	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
 
 	var no int = 0
 	helpers.ErrorCheck(err)
 	for row.Next() {
 		no += 1
 		var (
-			username_db, name_db, idadminlevel_db                   string
-			statuslogin_db, lastlogin_db, joindate_db, ipaddress_db string
+			idagenadminrule_db                                                                                                                        int
+			idagenadmin_db, tipeagen_admin_db, nmagenadminrule_db, usernameagen_admin_db, nameagen_admin_db, phone1agen_admin_db, phone2agen_admin_db string
+			statusagenadmin_db, lastloginagen_admin_db, ipaddress_admin_db                                                                            string
+			createagenadminrule_db, createagenadminruledate_db, updateagenadminrule_db, updatedateagenadminrule_db                                    string
 		)
 
 		err = row.Scan(
-			&username_db, &name_db, &idadminlevel_db,
-			&statuslogin_db, &lastlogin_db, &joindate_db,
-			&ipaddress_db)
+			&idagenadmin_db, &idagenadminrule_db, &tipeagen_admin_db, nmagenadminrule_db,
+			&usernameagen_admin_db, &nameagen_admin_db, &phone1agen_admin_db, &phone2agen_admin_db,
+			&statusagenadmin_db, &lastloginagen_admin_db, &ipaddress_admin_db,
+			&createagenadminrule_db, &createagenadminruledate_db, &updateagenadminrule_db, &updatedateagenadminrule_db)
 
 		helpers.ErrorCheck(err)
-		if statuslogin_db == "Y" {
-			statuslogin_db = "ACTIVE"
+		create := ""
+		update := ""
+		status_css := configs.STATUS_CANCEL
+		if createagenadminrule_db != "" {
+			create = createagenadminrule_db + ", " + createagenadminruledate_db
 		}
-		if lastlogin_db == "0000-00-00 00:00:00" {
-			lastlogin_db = ""
+		if updateagenadminrule_db != "" {
+			update = updateagenadminrule_db + ", " + updatedateagenadminrule_db
 		}
-		obj.Username = username_db
-		obj.Nama = name_db
-		obj.Rule = idadminlevel_db
-		obj.Joindate = joindate_db
-		obj.Lastlogin = lastlogin_db
-		obj.LastIpaddress = ipaddress_db
-		obj.Status = statuslogin_db
+		if statusagenadmin_db == "Y" {
+			status_css = configs.STATUS_COMPLETE
+		}
+		obj.Admin_id = idagenadmin_db
+		obj.Admin_idrule = idagenadminrule_db
+		obj.Admin_tipe = tipeagen_admin_db
+		obj.Admin_nmrule = nmagenadminrule_db
+		obj.Admin_username = usernameagen_admin_db
+		obj.Admin_nama = nameagen_admin_db
+		obj.Admin_phone1 = phone1agen_admin_db
+		obj.Admin_phone2 = phone2agen_admin_db
+		obj.Admin_lastipaddres = ipaddress_admin_db
+		obj.Admin_lastlogin = lastloginagen_admin_db
+		obj.Admin_status = statusagenadmin_db
+		obj.Admin_status_css = status_css
+		obj.Admin_create = create
+		obj.Admin_update = update
 		arraobj = append(arraobj, obj)
 		msg = "Success"
 	}
@@ -71,22 +91,25 @@ func Fetch_adminHome() (helpers.ResponseAdmin, error) {
 	var objRule entities.Model_adminrule
 	var arraobjRule []entities.Model_adminrule
 	sql_listrule := `SELECT 
-		idadmin 	
-		FROM ` + configs.DB_tbl_admingroup + ` 
+		idagenadminrule, nmagenadminrule  	
+		FROM ` + configs.DB_tbl_mst_master_agen_admin_rule + ` 
+		WHERE idmasteragen=$1 
 	`
-	row_listrule, err_listrule := con.QueryContext(ctx, sql_listrule)
+	row_listrule, err_listrule := con.QueryContext(ctx, sql_listrule, idmasteragen)
 
 	helpers.ErrorCheck(err_listrule)
 	for row_listrule.Next() {
 		var (
-			idruleadmin_db string
+			idagenadminrule_db int
+			nmagenadminrule_db string
 		)
 
-		err = row_listrule.Scan(&idruleadmin_db)
+		err = row_listrule.Scan(&idagenadminrule_db, &nmagenadminrule_db)
 
 		helpers.ErrorCheck(err)
 
-		objRule.Idrule = idruleadmin_db
+		objRule.Adminrule_idruleadmin = int(idagenadminrule_db)
+		objRule.Adminrule_nmruleadmin = nmagenadminrule_db
 		arraobjRule = append(arraobjRule, objRule)
 		msg = "Success"
 	}
@@ -99,69 +122,8 @@ func Fetch_adminHome() (helpers.ResponseAdmin, error) {
 
 	return res, nil
 }
-func Fetch_adminDetail(username string) (helpers.ResponseAdmin, error) {
-	var obj entities.Model_adminsave
-	var arraobj []entities.Model_adminsave
-	var res helpers.ResponseAdmin
-	msg := "Data Not Found"
-	con := db.CreateCon()
-	ctx := context.Background()
-	start := time.Now()
 
-	sql_detail := `SELECT 
-		idadmin, name, statuslogin  
-		createadmin, to_char(COALESCE(createdateadmin,now()), 'YYYY-MM-DD HH24:MI:SS'), 
-		updateadmin, to_char(COALESCE(updatedateadmin,now()), 'YYYY-MM-DD HH24:MI:SS')  
-		FROM ` + database_admin_local + `
-		WHERE username = $1 
-	`
-	var (
-		idadmin_db, name_db, statuslogin_db                                    string
-		createadmin_db, createdateadmin_db, updateadmin_db, updatedateadmin_db string
-	)
-	rows := con.QueryRowContext(ctx, sql_detail, username)
-
-	switch err := rows.Scan(
-		&idadmin_db, &name_db, &statuslogin_db,
-		&createadmin_db, &createdateadmin_db, &updateadmin_db, &updatedateadmin_db); err {
-	case sql.ErrNoRows:
-
-	case nil:
-		if createdateadmin_db == "0000-00-00 00:00:00" {
-			createdateadmin_db = ""
-		}
-		if updatedateadmin_db == "0000-00-00 00:00:00" {
-			updatedateadmin_db = ""
-		}
-		create := ""
-		update := ""
-		if createdateadmin_db != "" {
-			create = createadmin_db + ", " + createdateadmin_db
-		}
-		if updateadmin_db != "" {
-			create = updateadmin_db + ", " + updatedateadmin_db
-		}
-
-		obj.Username = username
-		obj.Nama = name_db
-		obj.Rule = idadmin_db
-		obj.Status = statuslogin_db
-		obj.Create = create
-		obj.Update = update
-		arraobj = append(arraobj, obj)
-		msg = "Success"
-	default:
-		helpers.ErrorCheck(err)
-	}
-
-	res.Status = fiber.StatusOK
-	res.Message = msg
-	res.Record = arraobj
-	res.Time = time.Since(start).String()
-
-	return res, nil
-}
-func Save_adminHome(admin, username, password, nama, rule, status, sData string) (helpers.Response, error) {
+func Save_adminHome(admin, idrecord, idmasteragen, tipe, username, password, nama, phone1, phone2, status, sData string, idrule int) (helpers.Response, error) {
 	var res helpers.Response
 	msg := "Failed"
 	tglnow, _ := goment.New()
@@ -169,25 +131,28 @@ func Save_adminHome(admin, username, password, nama, rule, status, sData string)
 	flag := false
 
 	if sData == "New" {
-		flag = CheckDB(database_admin_local, "username", username)
+		flag = CheckDBTwoField(database_admin_local, "idmasteragen", idmasteragen, "usernameagen_admin", username)
 		if !flag {
 			sql_insert := `
 				insert into
 				` + database_admin_local + ` (
-					username , password, idadmin, name, statuslogin, joindate, 
-					createadmin, createdateadmin
+					idagenadmin, idagenadminrule, idmasteragen , tipeagen_admin, usernameagen_admin, passwordagen_admin, lastloginagen_admin,   
+					nameagen_admin, phone1agen_admin, phone2agen_admin , statusagenadmin, 
+					createagenadmin, createdateagenadmin    
 				) values (
-					$1, $2, $3, $4, $5, $6, 
-					$7, $8
+					$1, $2, $3, $4, $5, $6, $7,   
+					$8, $9, $10, $11,     
+					$12, $13  
 				)
 			`
+			field_column := idmasteragen + database_admin_local + tglnow.Format("YY")
+			idrecord_counter := Get_counter(field_column)
 			hashpass := helpers.HashPasswordMD5(password)
+			create_date := tglnow.Format("YYYY-MM-DD HH:mm:ss")
 			flag_insert, msg_insert := Exec_SQL(sql_insert, database_admin_local, "INSERT",
-				username, hashpass,
-				rule, nama, status,
-				tglnow.Format("YYYY-MM-DD"),
-				admin,
-				tglnow.Format("YYYY-MM-DD HH:mm:ss"))
+				idmasteragen+"-"+tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idrule, idmasteragen, tipe, username, hashpass, create_date,
+				nama, phone1, phone2, status,
+				admin, create_date)
 
 			if flag_insert {
 				msg = "Succes"
@@ -202,18 +167,14 @@ func Save_adminHome(admin, username, password, nama, rule, status, sData string)
 			sql_update := `
 				UPDATE 
 				` + database_admin_local + `  
-				SET name =$1, idadmin=$2, statuslogin=$3,  
-				updateadmin=$4, updatedateadmin=$5 
-				WHERE username =$6 
+				SET idagenadminrule=$1, tipeagen_admin=$2, nameagen_admin=$3, phone1agen_admin=$4, phone2agen_admin=$5, statusagenadmin=$6,  
+				updateagenadmin=$7, updatedateagenadmin=$8         
+				WHERE idmasteragen=$9 AND idagenadmin=$10         
 			`
 
 			flag_update, msg_update := Exec_SQL(sql_update, database_admin_local, "UPDATE",
-				nama,
-				rule,
-				status,
-				admin,
-				tglnow.Format("YYYY-MM-DD HH:mm:ss"),
-				username)
+				idrule, tipe, nama, phone1, phone2, status,
+				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmasteragen, idrecord)
 
 			if flag_update {
 				msg = "Succes"
@@ -225,18 +186,13 @@ func Save_adminHome(admin, username, password, nama, rule, status, sData string)
 			sql_update2 := `
 				UPDATE 
 				` + configs.DB_tbl_admin + `   
-				SET name =$1, password=$2, idadmin=$3, statuslogin=$4,  
-				updateadmin=$5, updatedateadmin=$6 
-				WHERE username =$7 
+				SET idagenadminrule=$1, tipeagen_admin=$2, passwordagen_admin=$3, nameagen_admin=$4, phone1agen_admin=$5, phone2agen_admin=$6, statusagenadmin=$7,  
+				updateagenadmin=$8, updatedateagenadmin=$9          
+				WHERE idmasteragen=$10 AND idagenadmin=$11         
 			`
 			flag_update, msg_update := Exec_SQL(sql_update2, database_admin_local, "UPDATE",
-				nama,
-				hashpass,
-				rule,
-				status,
-				admin,
-				tglnow.Format("YYYY-MM-DD HH:mm:ss"),
-				username)
+				idrule, tipe, hashpass, nama, phone1, phone2, status,
+				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmasteragen, idrecord)
 
 			if flag_update {
 				msg = "Succes"

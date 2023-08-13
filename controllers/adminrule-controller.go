@@ -13,27 +13,38 @@ import (
 	"github.com/nikitamirzani323/wl_agen_backend_api/models"
 )
 
-const Fieldadminrule_home_redis = "LISTADMINRULE_BACKEND_ISBPANEL"
+const Fieldadminrule_home_redis = "LISTADMINRULE_AGEN"
 
 func Adminrulehome(c *fiber.Ctx) error {
+	user := c.Locals("jwt").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	name := claims["name"].(string)
+	temp_decp := helpers.Decryption(name)
+	client_idmasteragen, _, _, _ := helpers.Parsing_Decry(temp_decp, "==")
 
-	var obj entities.Responseredis_adminruleall
-	var arraobj []entities.Responseredis_adminruleall
+	var obj entities.Model_agenadminrule
+	var arraobj []entities.Model_agenadminrule
 	render_page := time.Now()
-	resultredis, flag := helpers.GetRedis(Fieldadminrule_home_redis)
+	resultredis, flag := helpers.GetRedis(Fieldadminrule_home_redis + "_" + client_idmasteragen)
 	jsonredis := []byte(resultredis)
 	record_RD, _, _, _ := jsonparser.Get(jsonredis, "record")
 	jsonparser.ArrayEach(record_RD, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-		Adminrule_idadmin, _ := jsonparser.GetString(value, "adminrule_idadmin")
-		Adminrule_rule, _ := jsonparser.GetString(value, "adminrule_rule")
+		agenadminrule_id, _ := jsonparser.GetInt(value, "agenadminrule_id")
+		agenadminrule_name, _ := jsonparser.GetString(value, "agenadminrule_name")
+		agenadminrule_rule, _ := jsonparser.GetString(value, "agenadminrule_rule")
+		agenadminrule_create, _ := jsonparser.GetString(value, "agenadminrule_create")
+		agenadminrule_update, _ := jsonparser.GetString(value, "agenadminrule_update")
 
-		obj.Adminrule_idadmin = Adminrule_idadmin
-		obj.Adminrule_rule = Adminrule_rule
+		obj.Agenadminrule_id = int(agenadminrule_id)
+		obj.Agenadminrule_name = agenadminrule_name
+		obj.Agenadminrule_rule = agenadminrule_rule
+		obj.Agenadminrule_create = agenadminrule_create
+		obj.Agenadminrule_update = agenadminrule_update
 		arraobj = append(arraobj, obj)
 	})
 
 	if !flag {
-		result, err := models.Fetch_adminruleHome()
+		result, err := models.Fetch_adminruleHome(client_idmasteragen)
 		if err != nil {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -42,7 +53,7 @@ func Adminrulehome(c *fiber.Ctx) error {
 				"record":  nil,
 			})
 		}
-		helpers.SetRedis(Fieldadminrule_home_redis, result, 60*time.Minute)
+		helpers.SetRedis(Fieldadminrule_home_redis+"_"+client_idmasteragen, result, 60*time.Minute)
 		log.Println("ADMIN RULE MYSQL")
 		return c.JSON(result)
 	} else {
@@ -57,7 +68,7 @@ func Adminrulehome(c *fiber.Ctx) error {
 }
 func AdminruleSave(c *fiber.Ctx) error {
 	var errors []*helpers.ErrorResponse
-	client := new(entities.Controller_adminrulesave)
+	client := new(entities.Controller_agenadminrulesave)
 	validate := validator.New()
 	if err := c.BodyParser(client); err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -87,9 +98,10 @@ func AdminruleSave(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
-
-	result, err := models.Save_adminrule(client_admin, client.Idadmin, client.Rule, client.Sdata)
+	client_idmasteragen, client_idagenadmin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	//admin, idmasteragen, nmrule, rule, sData string, idrecord int
+	result, err := models.Save_adminrule(client_idagenadmin, client_idmasteragen,
+		client.Agenadminrule_name, client.Agenadminrule_rule, client.Sdata, client.Agenadminrule_id)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -99,11 +111,11 @@ func AdminruleSave(c *fiber.Ctx) error {
 		})
 	}
 
-	_deleteredis_adminrule()
+	_deleteredis_adminrule(client_idmasteragen)
 	return c.JSON(result)
 }
-func _deleteredis_adminrule() {
-	val_master := helpers.DeleteRedis(Fieldadminrule_home_redis)
-	log.Printf("Redis Delete BACKEND ADMIN RULE : %d", val_master)
+func _deleteredis_adminrule(idmasteragen string) {
+	val_master := helpers.DeleteRedis(Fieldadminrule_home_redis + "_" + idmasteragen)
+	log.Printf("Redis Delete AGEN ADMIN RULE : %d", val_master)
 
 }

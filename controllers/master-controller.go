@@ -295,7 +295,7 @@ func MasterSave(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	_, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
 
 	//admin, idrecord, idcurr, name, owner, phone1, phone2, email, note, status,
 	// idbanktype, norekbank, nmownerbank, sData string
@@ -348,7 +348,7 @@ func MasteradminSave(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	_, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
 
 	result, err := models.Save_masteradmin(
 		client_admin,
@@ -398,7 +398,7 @@ func MasteragenSave(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	_, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
 
 	// admin, idrecord, idmaster, idcurr, name, owner, phone1, phone2,
 	// email, note, status, idbanktype, norekbank, nmownerbank, sData string
@@ -453,7 +453,7 @@ func MasteragenadminSave(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	_, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
 
 	// admin, idrecord, idmasteragen, tipe, username, password, name, phone1, phone2, status, sData string
 	result, err := models.Save_masteragenadmin(

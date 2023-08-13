@@ -141,7 +141,7 @@ func CateGameSave(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	_, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
 
 	// admin, idrecord, name, status, sData string
 	result, err := models.Save_categame(
@@ -191,7 +191,7 @@ func GameSave(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	_, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
 
 	result, err := models.Save_game(
 		client_admin,
