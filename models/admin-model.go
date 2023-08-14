@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 )
 
 const database_admin_local = configs.DB_tbl_mst_master_agen_admin
+const database_adminrule_local = configs.DB_tbl_mst_master_agen_admin_rule
 
 func Fetch_adminHome(idmasteragen string) (helpers.ResponseAdmin, error) {
 	var obj entities.Model_admin
@@ -24,19 +26,18 @@ func Fetch_adminHome(idmasteragen string) (helpers.ResponseAdmin, error) {
 	con := db.CreateCon()
 	ctx := context.Background()
 	start := time.Now()
-
+	log.Println(idmasteragen)
 	sql_select := `SELECT 
 			A.idagenadmin, A.idagenadminrule, A.tipeagen_admin,
 			B.nmagenadminrule, A.usernameagen_admin , A.nameagen_admin, A.phone1agen_admin, A.phone2agen_admin, 
 			A.statusagenadmin, to_char(COALESCE(A.lastloginagen_admin,now()), 'YYYY-MM-DD HH24:MI:SS'), A.ipaddress_admin, 
-			A.createagenadminrule, to_char(COALESCE(A.createagenadminruledate,now()), 'YYYY-MM-DD HH24:MI:SS'), 
-			A.updateagenadminrule, to_char(COALESCE(A.updatedateagenadminrule,now()), 'YYYY-MM-DD HH24:MI:SS')   
+			A.createagenadmin, to_char(COALESCE(A.createdateagenadmin,now()), 'YYYY-MM-DD HH24:MI:SS'), 
+			A.updateagenadmin, to_char(COALESCE(A.updatedateagenadmin,now()), 'YYYY-MM-DD HH24:MI:SS')   
 			FROM ` + database_admin_local + ` as A 
-			FROM ` + database_admin_local + ` as B on B.idagenadminrule = A.idagenadminrule 
+			JOIN ` + database_adminrule_local + ` as B on B.idagenadminrule = A.idagenadminrule 
 			WHERE A.idmasteragen=$1 
 			ORDER BY A.lastloginagen_admin DESC 
 		`
-
 	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
 
 	var no int = 0
@@ -47,24 +48,24 @@ func Fetch_adminHome(idmasteragen string) (helpers.ResponseAdmin, error) {
 			idagenadminrule_db                                                                                                                        int
 			idagenadmin_db, tipeagen_admin_db, nmagenadminrule_db, usernameagen_admin_db, nameagen_admin_db, phone1agen_admin_db, phone2agen_admin_db string
 			statusagenadmin_db, lastloginagen_admin_db, ipaddress_admin_db                                                                            string
-			createagenadminrule_db, createagenadminruledate_db, updateagenadminrule_db, updatedateagenadminrule_db                                    string
+			createagenadmin_db, createdateagenadmin_db, updateagenadmin_db, updatedateagenadmin_db                                                    string
 		)
 
 		err = row.Scan(
-			&idagenadmin_db, &idagenadminrule_db, &tipeagen_admin_db, nmagenadminrule_db,
+			&idagenadmin_db, &idagenadminrule_db, &tipeagen_admin_db, &nmagenadminrule_db,
 			&usernameagen_admin_db, &nameagen_admin_db, &phone1agen_admin_db, &phone2agen_admin_db,
 			&statusagenadmin_db, &lastloginagen_admin_db, &ipaddress_admin_db,
-			&createagenadminrule_db, &createagenadminruledate_db, &updateagenadminrule_db, &updatedateagenadminrule_db)
+			&createagenadmin_db, &createdateagenadmin_db, &updateagenadmin_db, &updatedateagenadmin_db)
 
 		helpers.ErrorCheck(err)
 		create := ""
 		update := ""
 		status_css := configs.STATUS_CANCEL
-		if createagenadminrule_db != "" {
-			create = createagenadminrule_db + ", " + createagenadminruledate_db
+		if createagenadmin_db != "" {
+			create = createagenadmin_db + ", " + createdateagenadmin_db
 		}
-		if updateagenadminrule_db != "" {
-			update = updateagenadminrule_db + ", " + updatedateagenadminrule_db
+		if updateagenadmin_db != "" {
+			update = updateagenadmin_db + ", " + updatedateagenadmin_db
 		}
 		if statusagenadmin_db == "Y" {
 			status_css = configs.STATUS_COMPLETE
