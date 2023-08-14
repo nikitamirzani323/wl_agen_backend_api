@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -26,7 +25,6 @@ func Fetch_adminHome(idmasteragen string) (helpers.ResponseAdmin, error) {
 	con := db.CreateCon()
 	ctx := context.Background()
 	start := time.Now()
-	log.Println(idmasteragen)
 	sql_select := `SELECT 
 			A.idagenadmin, A.idagenadminrule, A.tipeagen_admin,
 			B.nmagenadminrule, A.usernameagen_admin , A.nameagen_admin, A.phone1agen_admin, A.phone2agen_admin, 

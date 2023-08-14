@@ -8,10 +8,9 @@ type Model_agenadminrule struct {
 	Agenadminrule_update string `json:"agenadminrule_update"`
 }
 type Controller_agenadminrulesave struct {
-	Sdata                string `json:"sdata" validate:"required"`
-	Page                 string `json:"page" validate:"required"`
-	Agenadminrule_id     int    `json:"agenadminrule_id" `
-	Agenadminrule_idagen string `json:"agenadminrule_idagen" validate:"required"`
-	Agenadminrule_name   string `json:"agenadminrule_name"`
-	Agenadminrule_rule   string `json:"agenadminrule_rule"`
+	Sdata              string `json:"sdata" validate:"required"`
+	Page               string `json:"page" validate:"required"`
+	Agenadminrule_id   int    `json:"agenadminrule_id" `
+	Agenadminrule_name string `json:"agenadminrule_name"`
+	Agenadminrule_rule string `json:"agenadminrule_rule"`
 }

@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 )
 
 const database_agenadminrule_local = configs.DB_tbl_mst_master_agen_admin_rule
-const database_agen_local = configs.DB_tbl_mst_master_agen
 
 func Fetch_adminruleHome(idmasteragen string) (helpers.Response, error) {
 	var obj entities.Model_agenadminrule
@@ -25,17 +25,16 @@ func Fetch_adminruleHome(idmasteragen string) (helpers.Response, error) {
 	con := db.CreateCon()
 	ctx := context.Background()
 	start := time.Now()
-
+	log.Println(idmasteragen)
 	sql_select := `SELECT 
 			idagenadminrule, nmagenadminrule, ruleagenadminrule, 
 			createagenadminrule, to_char(COALESCE(createagenadminruledate,now()), 'YYYY-MM-DD HH24:MI:SS'), 
 			updateagenadminrule, to_char(COALESCE(updatedateagenadminrule,now()), 'YYYY-MM-DD HH24:MI:SS') 
 			FROM ` + database_agenadminrule_local + `  
-			WHERE idmasteragen = $1 
-			ORDER BY A.idagenadminrule ASC  
+			WHERE idmasteragen='` + idmasteragen + `'    
+			ORDER BY idagenadminrule ASC  
 		`
-
-	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
+	row, err := con.QueryContext(ctx, sql_select)
 
 	var no int = 0
 	helpers.ErrorCheck(err)
@@ -60,16 +59,15 @@ func Fetch_adminruleHome(idmasteragen string) (helpers.Response, error) {
 		if updateagenadminrule_db != "" {
 			update = updateagenadminrule_db + ", " + updatedateagenadminrule_db
 		}
-
 		obj.Agenadminrule_id = idagenadminrule_db
 		obj.Agenadminrule_name = nmagenadminrule_db
 		obj.Agenadminrule_rule = ruleagenadminrule_db
 		obj.Agenadminrule_create = create
 		obj.Agenadminrule_update = update
+		arraobj = append(arraobj, obj)
 		msg = "Success"
 	}
 	defer row.Close()
-
 	res.Status = fiber.StatusOK
 	res.Message = msg
 	res.Record = arraobj

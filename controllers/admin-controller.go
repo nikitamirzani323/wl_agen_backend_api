@@ -22,7 +22,7 @@ func Adminhome(c *fiber.Ctx) error {
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
 	client_idmasteragen, _, _, _ := helpers.Parsing_Decry(temp_decp, "==")
-	log.Println(client_idmasteragen)
+
 	var obj entities.Model_admin
 	var arraobj []entities.Model_admin
 	var obj_listruleadmin entities.Responseredis_adminrule
