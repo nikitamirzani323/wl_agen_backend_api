@@ -34,7 +34,6 @@ type Controller_adminsave struct {
 	Page           string `json:"page" validate:"required"`
 	Admin_id       string `json:"admin_id"`
 	Admin_idrule   int    `json:"admin_idrule" validate:"required"`
-	Admin_tipe     string `json:"admin_tipe" validate:"required"`
 	Admin_username string `json:"admin_username" validate:"required"`
 	Admin_password string `json:"admin_password"`
 	Admin_nama     string `json:"admin_nama" validate:"required"`

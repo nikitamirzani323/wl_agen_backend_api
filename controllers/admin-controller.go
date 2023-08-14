@@ -25,8 +25,8 @@ func Adminhome(c *fiber.Ctx) error {
 
 	var obj entities.Model_admin
 	var arraobj []entities.Model_admin
-	var obj_listruleadmin entities.Responseredis_adminrule
-	var arraobj_listruleadmin []entities.Responseredis_adminrule
+	var obj_listruleadmin entities.Model_adminrule
+	var arraobj_listruleadmin []entities.Model_adminrule
 	render_page := time.Now()
 	resultredis, flag := helpers.GetRedis(Fieldadmin_home_redis + "_" + client_idmasteragen)
 	jsonredis := []byte(resultredis)
@@ -65,9 +65,11 @@ func Adminhome(c *fiber.Ctx) error {
 		arraobj = append(arraobj, obj)
 	})
 	jsonparser.ArrayEach(listruleadmin_RD, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-		adminrule_name, _ := jsonparser.GetString(value, "adminrule_idruleadmin")
+		adminrule_idruleadmin, _ := jsonparser.GetInt(value, "adminrule_idruleadmin")
+		adminrule_nmruleadmin, _ := jsonparser.GetString(value, "adminrule_nmruleadmin")
 
-		obj_listruleadmin.Adminrule_idrule = adminrule_name
+		obj_listruleadmin.Adminrule_idruleadmin = int(adminrule_idruleadmin)
+		obj_listruleadmin.Adminrule_nmruleadmin = adminrule_nmruleadmin
 		arraobj_listruleadmin = append(arraobj_listruleadmin, obj_listruleadmin)
 	})
 	if !flag {
@@ -131,7 +133,7 @@ func AdminSave(c *fiber.Ctx) error {
 
 	result, err := models.Save_adminHome(
 		client_admin,
-		client.Admin_id, client_idmasteragen, client.Admin_tipe, client.Admin_username, client.Admin_password,
+		client.Admin_id, client_idmasteragen, client.Admin_username, client.Admin_password,
 		client.Admin_nama, client.Admin_phone1, client.Admin_phone2, client.Admin_status,
 		client.Sdata, client.Admin_idrule)
 	if err != nil {

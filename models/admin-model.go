@@ -92,7 +92,7 @@ func Fetch_adminHome(idmasteragen string) (helpers.ResponseAdmin, error) {
 	sql_listrule := `SELECT 
 		idagenadminrule, nmagenadminrule  	
 		FROM ` + configs.DB_tbl_mst_master_agen_admin_rule + ` 
-		WHERE idmasteragen=$1 
+		WHERE idmasteragen=$1 AND nmagenadminrule!='master'
 	`
 	row_listrule, err_listrule := con.QueryContext(ctx, sql_listrule, idmasteragen)
 
@@ -122,7 +122,7 @@ func Fetch_adminHome(idmasteragen string) (helpers.ResponseAdmin, error) {
 	return res, nil
 }
 
-func Save_adminHome(admin, idrecord, idmasteragen, tipe, username, password, nama, phone1, phone2, status, sData string, idrule int) (helpers.Response, error) {
+func Save_adminHome(admin, idrecord, idmasteragen, username, password, nama, phone1, phone2, status, sData string, idrule int) (helpers.Response, error) {
 	var res helpers.Response
 	msg := "Failed"
 	tglnow, _ := goment.New()
@@ -149,7 +149,7 @@ func Save_adminHome(admin, idrecord, idmasteragen, tipe, username, password, nam
 			hashpass := helpers.HashPasswordMD5(password)
 			create_date := tglnow.Format("YYYY-MM-DD HH:mm:ss")
 			flag_insert, msg_insert := Exec_SQL(sql_insert, database_admin_local, "INSERT",
-				idmasteragen+"-"+tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idrule, idmasteragen, tipe, username, hashpass, create_date,
+				idmasteragen+"-"+tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idrule, idmasteragen, "ADMIN", username, hashpass, create_date,
 				nama, phone1, phone2, status,
 				admin, create_date)
 
@@ -166,13 +166,13 @@ func Save_adminHome(admin, idrecord, idmasteragen, tipe, username, password, nam
 			sql_update := `
 				UPDATE 
 				` + database_admin_local + `  
-				SET idagenadminrule=$1, tipeagen_admin=$2, nameagen_admin=$3, phone1agen_admin=$4, phone2agen_admin=$5, statusagenadmin=$6,  
-				updateagenadmin=$7, updatedateagenadmin=$8         
-				WHERE idmasteragen=$9 AND idagenadmin=$10         
+				SET idagenadminrule=$1, nameagen_admin=$2, phone1agen_admin=$3, phone2agen_admin=$4, statusagenadmin=$5,  
+				updateagenadmin=$6, updatedateagenadmin=$7         
+				WHERE idmasteragen=$8 AND idagenadmin=$9          
 			`
 
 			flag_update, msg_update := Exec_SQL(sql_update, database_admin_local, "UPDATE",
-				idrule, tipe, nama, phone1, phone2, status,
+				idrule, nama, phone1, phone2, status,
 				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmasteragen, idrecord)
 
 			if flag_update {
@@ -185,12 +185,12 @@ func Save_adminHome(admin, idrecord, idmasteragen, tipe, username, password, nam
 			sql_update2 := `
 				UPDATE 
 				` + configs.DB_tbl_admin + `   
-				SET idagenadminrule=$1, tipeagen_admin=$2, passwordagen_admin=$3, nameagen_admin=$4, phone1agen_admin=$5, phone2agen_admin=$6, statusagenadmin=$7,  
-				updateagenadmin=$8, updatedateagenadmin=$9          
-				WHERE idmasteragen=$10 AND idagenadmin=$11         
+				SET idagenadminrule=$1, passwordagen_admin=$2, nameagen_admin=$3, phone1agen_admin=$4, phone2agen_admin=$5, statusagenadmin=$6,  
+				updateagenadmin=$7, updatedateagenadmin=$8          
+				WHERE idmasteragen=$9 AND idagenadmin=$10         
 			`
 			flag_update, msg_update := Exec_SQL(sql_update2, database_admin_local, "UPDATE",
-				idrule, tipe, hashpass, nama, phone1, phone2, status,
+				idrule, hashpass, nama, phone1, phone2, status,
 				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmasteragen, idrecord)
 
 			if flag_update {
