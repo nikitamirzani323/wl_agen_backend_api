@@ -10,6 +10,7 @@ const (
 	DB_tbl_mst_master_agen            string = "tbl_mst_master_agen"
 	DB_tbl_mst_master_agen_admin      string = "tbl_mst_master_agen_admin"
 	DB_tbl_mst_master_agen_admin_rule string = "tbl_mst_master_agen_admin_rule"
+	DB_tbl_mst_master_agen_member     string = "tbl_mst_master_agen_member"
 	DB_tbl_mst_curr                   string = "tbl_mst_currency"
 	DB_tbl_mst_cate_bank              string = "tbl_mst_catebank"
 	DB_tbl_mst_banktype               string = "tbl_mst_banktype"

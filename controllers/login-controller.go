@@ -40,7 +40,7 @@ func CheckLogin(c *fiber.Ctx) error {
 		})
 	}
 
-	result, idmasteragen, idagenadmin, ruleadmin, tipeadmin, err := models.Login_Model(client.Username, client.Password, client.Ipaddress)
+	result, idmaster, idmasteragen, idagenadmin, ruleadmin, tipeadmin, err := models.Login_Model(client.Username, client.Password, client.Ipaddress)
 
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -59,7 +59,7 @@ func CheckLogin(c *fiber.Ctx) error {
 			})
 
 	} else {
-		dataclient := idmasteragen + "==" + idagenadmin + "==" + ruleadmin + "==" + tipeadmin
+		dataclient := idmaster + "==" + idmasteragen + "==" + idagenadmin + "==" + ruleadmin + "==" + tipeadmin
 		dataclient_encr, keymap := helpers.Encryption(dataclient)
 		dataclient_encr_final := dataclient_encr + "|" + strconv.Itoa(keymap)
 		t, err := helpers.GenerateNewAccessToken(dataclient_encr_final)
@@ -89,11 +89,12 @@ func Home(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
-	client_idmasteragen, client_idagenadmin, idruleadmin, tipeadmin := helpers.Parsing_Decry(temp_decp, "==")
-	fmt.Println(client_idmasteragen)
-	fmt.Println(client_idagenadmin)
-	fmt.Println(idruleadmin)
-	fmt.Println(tipeadmin)
+	client_idmaster, client_idmasteragen, client_idagenadmin, idruleadmin, tipeadmin := helpers.Parsing_Decry(temp_decp, "==")
+	fmt.Println("IDMASTER:", client_idmaster)
+	fmt.Println("IDMASTER_AGEN:", client_idmasteragen)
+	fmt.Println("IDAGENADMIN:", client_idagenadmin)
+	fmt.Println("IDAGENADMINRULE:", idruleadmin)
+	fmt.Println("TIPE:", tipeadmin)
 	fmt.Println(client.Page)
 
 	if tipeadmin == "ADMIN" {

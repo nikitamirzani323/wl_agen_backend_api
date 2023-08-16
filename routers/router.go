@@ -53,23 +53,11 @@ func Init() *fiber.App {
 	app.Post("/api/saveadminrule", middleware.JWTProtected(), controllers.AdminruleSave)
 
 	app.Post("/api/curr", middleware.JWTProtected(), controllers.Currhome)
-	app.Post("/api/currsave", middleware.JWTProtected(), controllers.CurrSave)
 	app.Post("/api/provider", middleware.JWTProtected(), controllers.Providerhome)
-	app.Post("/api/providersave", middleware.JWTProtected(), controllers.ProviderSave)
 	app.Post("/api/categame", middleware.JWTProtected(), controllers.CateGamehome)
-	app.Post("/api/categamesave", middleware.JWTProtected(), controllers.CateGameSave)
-	app.Post("/api/gamesave", middleware.JWTProtected(), controllers.GameSave)
 	app.Post("/api/catebank", middleware.JWTProtected(), controllers.CateBankhome)
-	app.Post("/api/catebanksave", middleware.JWTProtected(), controllers.CateBankSave)
-	app.Post("/api/banktypesave", middleware.JWTProtected(), controllers.BankTypeSave)
-	app.Post("/api/master", middleware.JWTProtected(), controllers.Masterhome)
-	app.Post("/api/masteragenadmin", middleware.JWTProtected(), controllers.Masteragenadmin)
-	app.Post("/api/mastersave", middleware.JWTProtected(), controllers.MasterSave)
-	app.Post("/api/masteradminsave", middleware.JWTProtected(), controllers.MasteradminSave)
-	app.Post("/api/masteragensave", middleware.JWTProtected(), controllers.MasteragenSave)
-	app.Post("/api/masteragenadminsave", middleware.JWTProtected(), controllers.MasteragenadminSave)
-	app.Post("/api/domain", middleware.JWTProtected(), controllers.Domainhome)
-	app.Post("/api/domainsave", middleware.JWTProtected(), controllers.DomainSave)
+	app.Post("/api/member", middleware.JWTProtected(), controllers.Memberhome)
+	app.Post("/api/membersave", middleware.JWTProtected(), controllers.MemberSave)
 
 	return app
 }
