@@ -82,7 +82,8 @@ func Save_adminrule(admin, idmasteragen, nmrule, rule, sData string, idrecord in
 	render_page := time.Now()
 
 	if sData == "New" {
-		sql_insert := `
+		if nmrule != "master" {
+			sql_insert := `
 				insert into
 				` + database_agenadminrule_local + ` (
 					idagenadminrule, idmasteragen, nmagenadminrule,
@@ -92,16 +93,19 @@ func Save_adminrule(admin, idmasteragen, nmrule, rule, sData string, idrecord in
 					$4,$5
 				) 
 			`
-		field_column := database_agenadminrule_local + tglnow.Format("YYYY")
-		idrecord_counter := Get_counter(field_column)
-		flag_insert, msg_insert := Exec_SQL(sql_insert, database_agenadminrule_local, "INSERT",
-			tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idmasteragen, nmrule,
-			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
+			field_column := database_agenadminrule_local + tglnow.Format("YYYY")
+			idrecord_counter := Get_counter(field_column)
+			flag_insert, msg_insert := Exec_SQL(sql_insert, database_agenadminrule_local, "INSERT",
+				tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idmasteragen, nmrule,
+				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
 
-		if flag_insert {
-			msg = "Succes"
+			if flag_insert {
+				msg = "Succes"
+			} else {
+				fmt.Println(msg_insert)
+			}
 		} else {
-			fmt.Println(msg_insert)
+			msg = "Cannot used rule master, please try other name"
 		}
 	} else {
 		sql_update := `
