@@ -170,7 +170,7 @@ func Save_member(admin, idmaster, idmasteragen, username, password, name, phone,
 			hashpass := helpers.HashPasswordMD5(password)
 			create_date := tglnow.Format("YYYY-MM-DD HH:mm:ss")
 			flag_insert, msg_insert := Exec_SQL(sql_insert, database_member_local, "INSERT",
-				idmasteragen+tglnow.Format("YY")+tglnow.Format("MM")+tglnow.Format("DD")+tglnow.Format("HH")+strconv.Itoa(idrecord_counter), idmaster, idmasteragen,
+				idmasteragen+"-"+tglnow.Format("YY")+tglnow.Format("MM")+tglnow.Format("DD")+tglnow.Format("HH")+strconv.Itoa(idrecord_counter), idmaster, idmasteragen,
 				username, hashpass, create_date,
 				name, phone, email, status,
 				admin, create_date)
