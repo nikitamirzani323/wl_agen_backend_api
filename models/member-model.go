@@ -15,11 +15,14 @@ import (
 )
 
 const database_member_local = configs.DB_tbl_mst_master_agen_member
+const database_memberbank_local = configs.DB_tbl_mst_master_agen_member_bank
 
-func Fetch_memberHome(idmasteragen string) (helpers.Response, error) {
+func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 	var obj entities.Model_member
 	var arraobj []entities.Model_member
-	var res helpers.Response
+	var objbanktype entities.Model_bankTypeshare
+	var arraobjbanktype []entities.Model_bankTypeshare
+	var res helpers.Responsemember
 	msg := "Data Not Found"
 	con := db.CreateCon()
 	ctx := context.Background()
@@ -62,6 +65,31 @@ func Fetch_memberHome(idmasteragen string) (helpers.Response, error) {
 			status_css = configs.STATUS_COMPLETE
 		}
 
+		//BANK
+		var objbank entities.Model_memberbank
+		var arraobjbank []entities.Model_memberbank
+		sql_selectbank := `SELECT 
+		idagenmemberbank,idbanktype, norekbank_agenmemberbank, nmownerbank_agenmemberbank 
+			FROM ` + database_memberbank_local + ` 
+			WHERE idagenmember = $1   
+		`
+		row_bank, err_bank := con.QueryContext(ctx, sql_selectbank, idagenmember_db)
+		helpers.ErrorCheck(err_bank)
+		for row_bank.Next() {
+			var (
+				idagenmemberbank_db                                                       int
+				idbanktype_db, norekbank_agenmemberbank_db, nmownerbank_agenmemberbank_db string
+			)
+			err_bank = row_bank.Scan(&idagenmemberbank_db, &idbanktype_db, &norekbank_agenmemberbank_db, &nmownerbank_agenmemberbank_db)
+
+			objbank.Memberbank_id = idagenmemberbank_db
+			objbank.Memberbank_idbanktype = idbanktype_db
+			objbank.Memberbank_nmownerbank = nmownerbank_agenmemberbank_db
+			objbank.Memberbank_norek = norekbank_agenmemberbank_db
+			arraobjbank = append(arraobjbank, objbank)
+		}
+		defer row_bank.Close()
+
 		obj.Member_id = idagenmember_db
 		obj.Member_username = username_agenmember_db
 		obj.Member_timezone = timezone_agenmember_db
@@ -70,6 +98,7 @@ func Fetch_memberHome(idmasteragen string) (helpers.Response, error) {
 		obj.Member_name = name_agenmember_db
 		obj.Member_phone = phone_agenmember_db
 		obj.Member_email = email_agenmember_db
+		obj.Member_listbank = arraobjbank
 		obj.Member_status = status_agenmember_db
 		obj.Member_status_css = status_css
 		obj.Member_create = create
@@ -79,13 +108,39 @@ func Fetch_memberHome(idmasteragen string) (helpers.Response, error) {
 	}
 	defer row.Close()
 
+	sql_selectbanktype := `SELECT 
+			B.nmcatebank, A.idbanktype  
+			FROM ` + configs.DB_tbl_mst_banktype + ` as A 
+			JOIN ` + configs.DB_tbl_mst_cate_bank + ` as B ON B.idcatebank = A.idcatebank 
+			ORDER BY B.nmcatebank,A.idbanktype ASC    
+	`
+	rowbanktype, errbanktype := con.QueryContext(ctx, sql_selectbanktype)
+	helpers.ErrorCheck(errbanktype)
+	for rowbanktype.Next() {
+		var (
+			nmcatebank_db, idbanktype_db string
+		)
+
+		errbanktype = rowbanktype.Scan(&nmcatebank_db, &idbanktype_db)
+
+		helpers.ErrorCheck(errbanktype)
+
+		objbanktype.Catebank_name = nmcatebank_db
+		objbanktype.Banktype_id = idbanktype_db
+		arraobjbanktype = append(arraobjbanktype, objbanktype)
+		msg = "Success"
+	}
+	defer rowbanktype.Close()
+
 	res.Status = fiber.StatusOK
 	res.Message = msg
 	res.Record = arraobj
+	res.Listbank = arraobjbanktype
 	res.Time = time.Since(start).String()
 
 	return res, nil
 }
+
 func Save_member(admin, idmaster, idmasteragen, username, password, name, phone, email, status, sData, idrecord string) (helpers.Response, error) {
 	var res helpers.Response
 	msg := "Failed"
@@ -169,6 +224,71 @@ func Save_member(admin, idmaster, idmasteragen, username, password, name, phone,
 				fmt.Println(msg_update)
 			}
 		}
+	}
+
+	res.Status = fiber.StatusOK
+	res.Message = msg
+	res.Record = nil
+	res.Time = time.Since(render_page).String()
+
+	return res, nil
+}
+func Save_memberbank(admin, idagenmember, idbanktype, norek, name, sData string) (helpers.Response, error) {
+	var res helpers.Response
+	msg := "Failed"
+	tglnow, _ := goment.New()
+	render_page := time.Now()
+
+	if sData == "New" {
+		sql_insert := `
+			insert into
+			` + database_memberbank_local + ` (
+				idagenmemberbank , idagenmember, 
+				idbanktype, norekbank_agenmemberbank, nmownerbank_agenmemberbank, 
+				create_agenmemberbank, createdate_agenmemberbank    
+			) values (
+				$1, $2,    
+				$3, $4, $5,    
+				$6, $7
+			)
+		`
+		field_column := database_memberbank_local + tglnow.Format("YYYY")
+		idrecord_counter := Get_counter(field_column)
+		flag_insert, msg_insert := Exec_SQL(sql_insert, database_memberbank_local, "INSERT",
+			tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idagenmember, idbanktype,
+			norek, name,
+			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
+
+		if flag_insert {
+			msg = "Succes"
+		} else {
+			fmt.Println(msg_insert)
+		}
+	}
+
+	res.Status = fiber.StatusOK
+	res.Message = msg
+	res.Record = nil
+	res.Time = time.Since(render_page).String()
+
+	return res, nil
+}
+func Delete_memberbank(idagenmember string, idrecord int) (helpers.Response, error) {
+	var res helpers.Response
+	msg := "Failed"
+	render_page := time.Now()
+
+	sql_delete := `
+				DELETE FROM
+				` + database_memberbank_local + ` 
+				WHERE idagenmemberbank=$1 AND idagenmember=$2  
+			`
+	flag_delete, msg_delete := Exec_SQL(sql_delete, database_memberbank_local, "DELETE", idrecord, idagenmember)
+
+	if !flag_delete {
+		fmt.Println(msg_delete)
+	} else {
+		msg = "Succes"
 	}
 
 	res.Status = fiber.StatusOK

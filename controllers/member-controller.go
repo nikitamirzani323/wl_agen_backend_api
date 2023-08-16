@@ -25,9 +25,12 @@ func Memberhome(c *fiber.Ctx) error {
 
 	var obj entities.Model_member
 	var arraobj []entities.Model_member
+	var objbanktype entities.Model_bankTypeshare
+	var arraobjbanktype []entities.Model_bankTypeshare
 	render_page := time.Now()
 	resultredis, flag := helpers.GetRedis(Fieldmember_home_redis + "_" + client_idmasteragen)
 	jsonredis := []byte(resultredis)
+	listbanktype_RD, _, _, _ := jsonparser.Get(jsonredis, "listbank")
 	record_RD, _, _, _ := jsonparser.Get(jsonredis, "record")
 	jsonparser.ArrayEach(record_RD, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 		member_id, _ := jsonparser.GetString(value, "member_id")
@@ -43,6 +46,22 @@ func Memberhome(c *fiber.Ctx) error {
 		member_create, _ := jsonparser.GetString(value, "member_create")
 		member_update, _ := jsonparser.GetString(value, "member_update")
 
+		var objbank entities.Model_memberbank
+		var arraobjbank []entities.Model_memberbank
+		record_listbank_RD, _, _, _ := jsonparser.Get(value, "member_listbank")
+		jsonparser.ArrayEach(record_listbank_RD, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+			memberbank_id, _ := jsonparser.GetInt(value, "memberbank_id")
+			memberbank_idbanktype, _ := jsonparser.GetString(value, "memberbank_idbanktype")
+			memberbank_norek, _ := jsonparser.GetString(value, "memberbank_norek")
+			memberbank_nmownerbank, _ := jsonparser.GetString(value, "memberbank_nmownerbank")
+
+			objbank.Memberbank_id = int(memberbank_id)
+			objbank.Memberbank_idbanktype = memberbank_idbanktype
+			objbank.Memberbank_norek = memberbank_norek
+			objbank.Memberbank_nmownerbank = memberbank_nmownerbank
+			arraobjbank = append(arraobjbank, objbank)
+		})
+
 		obj.Member_id = member_id
 		obj.Member_username = member_username
 		obj.Member_timezone = member_timezone
@@ -51,13 +70,21 @@ func Memberhome(c *fiber.Ctx) error {
 		obj.Member_name = member_name
 		obj.Member_phone = member_phone
 		obj.Member_email = member_email
+		obj.Member_listbank = arraobjbank
 		obj.Member_status = member_status
 		obj.Member_status_css = member_status_css
 		obj.Member_create = member_create
 		obj.Member_update = member_update
 		arraobj = append(arraobj, obj)
 	})
+	jsonparser.ArrayEach(listbanktype_RD, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		catebank_name, _ := jsonparser.GetString(value, "catebank_name")
+		banktype_id, _ := jsonparser.GetString(value, "banktype_id")
 
+		objbanktype.Catebank_name = catebank_name
+		objbanktype.Banktype_id = banktype_id
+		arraobjbanktype = append(arraobjbanktype, objbanktype)
+	})
 	if !flag {
 		result, err := models.Fetch_memberHome(client_idmasteragen)
 		if err != nil {
@@ -74,10 +101,11 @@ func Memberhome(c *fiber.Ctx) error {
 	} else {
 		fmt.Println("MEMBER AGEN CACHE")
 		return c.JSON(fiber.Map{
-			"status":  fiber.StatusOK,
-			"message": "Success",
-			"record":  arraobj,
-			"time":    time.Since(render_page).String(),
+			"status":   fiber.StatusOK,
+			"message":  "Success",
+			"record":   arraobj,
+			"listbank": arraobjbanktype,
+			"time":     time.Since(render_page).String(),
 		})
 	}
 }
@@ -121,6 +149,104 @@ func MemberSave(c *fiber.Ctx) error {
 		client_idmaster, client_idmasteragen, client.Member_username, client.Member_password,
 		client.Member_name, client.Member_phone, client.Member_email, client.Member_status,
 		client.Sdata, client.Member_id)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": err.Error(),
+			"record":  nil,
+		})
+	}
+
+	_deleteredis_member(client_idmasteragen)
+	return c.JSON(result)
+}
+func MemberBankSave(c *fiber.Ctx) error {
+	var errors []*helpers.ErrorResponse
+	client := new(entities.Controller_memberbanksave)
+	validate := validator.New()
+	if err := c.BodyParser(client); err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": err.Error(),
+			"record":  nil,
+		})
+	}
+
+	err := validate.Struct(client)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			var element helpers.ErrorResponse
+			element.Field = err.StructField()
+			element.Tag = err.Tag()
+			errors = append(errors, &element)
+		}
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": "validation",
+			"record":  errors,
+		})
+	}
+	user := c.Locals("jwt").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	name := claims["name"].(string)
+	temp_decp := helpers.Decryption(name)
+	_, client_idmasteragen, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	//admin, idagenmember, idbanktype, norek, name, sData string, idrecord int
+	result, err := models.Save_memberbank(
+		client_admin,
+		client.Memberbank_idagenmember, client.Memberbank_idbanktype,
+		client.Memberbank_norek, client.Memberbank_nmownerbank,
+		client.Sdata)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": err.Error(),
+			"record":  nil,
+		})
+	}
+
+	_deleteredis_member(client_idmasteragen)
+	return c.JSON(result)
+}
+func MemberBankDelete(c *fiber.Ctx) error {
+	var errors []*helpers.ErrorResponse
+	client := new(entities.Controller_memberbankdelete)
+	validate := validator.New()
+	if err := c.BodyParser(client); err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": err.Error(),
+			"record":  nil,
+		})
+	}
+
+	err := validate.Struct(client)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			var element helpers.ErrorResponse
+			element.Field = err.StructField()
+			element.Tag = err.Tag()
+			errors = append(errors, &element)
+		}
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": "validation",
+			"record":  errors,
+		})
+	}
+	user := c.Locals("jwt").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	name := claims["name"].(string)
+	temp_decp := helpers.Decryption(name)
+	_, client_idmasteragen, _, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+	//idagenmember string, idrecord int
+	result, err := models.Delete_memberbank(client.Memberbank_idagenmember, client.Memberbank_id)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{

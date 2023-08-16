@@ -14,6 +14,13 @@ type Responsepaging struct {
 	Totalrecord int         `json:"totalrecord"`
 	Time        string      `json:"time"`
 }
+type Responsemember struct {
+	Status   int         `json:"status"`
+	Message  string      `json:"message"`
+	Record   interface{} `json:"record"`
+	Listbank interface{} `json:"listbank"`
+	Time     string      `json:"time"`
+}
 type Responsemaster struct {
 	Status   int         `json:"status"`
 	Message  string      `json:"message"`
