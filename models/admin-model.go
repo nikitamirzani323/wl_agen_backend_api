@@ -184,7 +184,7 @@ func Save_adminHome(admin, idrecord, idmasteragen, username, password, nama, pho
 			hashpass := helpers.HashPasswordMD5(password)
 			sql_update2 := `
 				UPDATE 
-				` + configs.DB_tbl_admin + `   
+				` + database_admin_local + `   
 				SET idagenadminrule=$1, passwordagen_admin=$2, nameagen_admin=$3, phone1agen_admin=$4, phone2agen_admin=$5, statusagenadmin=$6,  
 				updateagenadmin=$7, updatedateagenadmin=$8          
 				WHERE idmasteragen=$9 AND idagenadmin=$10         

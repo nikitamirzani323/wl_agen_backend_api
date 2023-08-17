@@ -189,8 +189,4 @@ func BankTypeSave(c *fiber.Ctx) error {
 func _deleteredis_catebank() {
 	val_master := helpers.DeleteRedis(Fieldcatebank_home_redis)
 	fmt.Printf("Redis Delete BACKEND CATEBANK : %d", val_master)
-
-	val_client := helpers.DeleteRedis(Fieldcurr_home_client_redis)
-	fmt.Printf("Redis Delete CLIENT CATEBANK : %d", val_client)
-
 }

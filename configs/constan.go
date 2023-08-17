@@ -2,8 +2,6 @@ package configs
 
 const (
 	DB_tbl_counter                     string = "tbl_counter"
-	DB_tbl_admin                       string = "tbl_admin"
-	DB_tbl_admingroup                  string = "tbl_admingroup"
 	DB_tbl_mst_domain                  string = "tbl_mst_domain"
 	DB_tbl_mst_master                  string = "tbl_mst_master"
 	DB_tbl_mst_master_admin            string = "tbl_mst_master_admin"
@@ -12,12 +10,14 @@ const (
 	DB_tbl_mst_master_agen_admin_rule  string = "tbl_mst_master_agen_admin_rule"
 	DB_tbl_mst_master_agen_member      string = "tbl_mst_master_agen_member"
 	DB_tbl_mst_master_agen_member_bank string = "tbl_mst_master_agen_member_bank"
+	DB_tbl_mst_master_agen_bank        string = "tbl_mst_master_agen_bank"
 	DB_tbl_mst_curr                    string = "tbl_mst_currency"
 	DB_tbl_mst_cate_bank               string = "tbl_mst_catebank"
 	DB_tbl_mst_banktype                string = "tbl_mst_banktype"
 	DB_tbl_mst_cate_game               string = "tbl_mst_categame"
 	DB_tbl_mst_game                    string = "tbl_mst_game"
 	DB_tbl_mst_provider                string = "tbl_mst_provider"
+	DB_tbl_trx_dpwd                    string = "tbl_trx_dpwd"
 
 	STATUS_NEW      string = "background:#0dcaf0;font-weight:bold;color:black;"
 	STATUS_RUNNING  string = "background:#FFEB3B;font-weight:bold;color:black;"
