@@ -13,13 +13,12 @@ type Model_agenbank struct {
 }
 
 type Controller_agenbanksave struct {
-	Page                  string `json:"page" validate:"required"`
-	Sdata                 string `json:"sdata" validate:"required"`
-	Agenbank_id           int    `json:"agenbank_id"`
-	Agenbank_idmasteragen string `json:"agenbank_idmasteragen"`
-	Agenbank_tipe         string `json:"agenbank_tipe" validate:"required"`
-	Agenbank_idbanktype   string `json:"agenbank_idbanktype" validate:"required"`
-	Agenbank_norek        string `json:"agenbank_norek" validate:"required"`
-	Agenbank_nmrek        string `json:"agenbank_nmrek" validate:"required"`
-	Agenbank_status       string `json:"agenbank_status" validate:"required"`
+	Page                string `json:"page" validate:"required"`
+	Sdata               string `json:"sdata" validate:"required"`
+	Agenbank_id         int    `json:"agenbank_id"`
+	Agenbank_tipe       string `json:"agenbank_tipe" validate:"required"`
+	Agenbank_idbanktype string `json:"agenbank_idbanktype" validate:"required"`
+	Agenbank_norek      string `json:"agenbank_norek" validate:"required"`
+	Agenbank_nmrek      string `json:"agenbank_nmrek" validate:"required"`
+	Agenbank_status     string `json:"agenbank_status" validate:"required"`
 }
