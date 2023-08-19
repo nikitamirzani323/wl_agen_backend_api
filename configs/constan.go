@@ -17,7 +17,6 @@ const (
 	DB_tbl_mst_cate_game               string = "tbl_mst_categame"
 	DB_tbl_mst_game                    string = "tbl_mst_game"
 	DB_tbl_mst_provider                string = "tbl_mst_provider"
-	DB_tbl_trx_dpwd                    string = "tbl_trx_dpwd"
 
 	STATUS_NEW      string = "background:#0dcaf0;font-weight:bold;color:black;"
 	STATUS_RUNNING  string = "background:#FFEB3B;font-weight:bold;color:black;"

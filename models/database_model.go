@@ -205,8 +205,8 @@ func Exec_SQL(sql, table, action string, args ...interface{}) (bool, string) {
 	}
 	return flag, msg
 }
-func Get_mappingdatabase_admin(codeagen string) string {
-	tbl_mst_admin := `"db_` + strings.ToUpper(codeagen) + `".tbl_mst_admin`
+func Get_mappingdatabase(codeagen string) (string, string) {
+	tbl_trx_dpwd := `"db_` + strings.ToUpper(codeagen) + `".tbl_trx_dpwd`
 
-	return tbl_mst_admin
+	return tbl_trx_dpwd, ""
 }
