@@ -11,6 +11,10 @@ type Model_agenbank struct {
 	Agenbank_create     string `json:"agenbank_create"`
 	Agenbank_update     string `json:"agenbank_update"`
 }
+type Model_agenbankshare struct {
+	Agenbank_id   int    `json:"agenbank_id"`
+	Agenbank_info string `json:"agenbank_info"`
+}
 
 type Controller_agenbanksave struct {
 	Page                string `json:"page" validate:"required"`

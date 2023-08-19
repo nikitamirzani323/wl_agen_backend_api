@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -136,6 +137,79 @@ func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 	res.Message = msg
 	res.Record = arraobj
 	res.Listbank = arraobjbanktype
+	res.Time = time.Since(start).String()
+
+	return res, nil
+}
+func Fetch_memberSearch(idmasteragen, search string) (helpers.Response, error) {
+	var obj entities.Model_membershare
+	var arraobj []entities.Model_membershare
+	var res helpers.Response
+	msg := "Data Not Found"
+	con := db.CreateCon()
+	ctx := context.Background()
+	start := time.Now()
+
+	perpage := 50
+
+	sql_select := ""
+	sql_select += ""
+	sql_select += "SELECT "
+	sql_select += "idagenmember , username_agenmember, name_agenmember "
+	sql_select += "FROM " + database_member_local + "  "
+	if search == "" {
+		sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
+		sql_select += "ORDER BY name_agenmember DESC   LIMIT " + strconv.Itoa(perpage)
+	} else {
+		sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
+		sql_select += "AND LOWER(username_agenmember) LIKE '%" + strings.ToLower(search) + "%' "
+		sql_select += "ORDER BY name_agenmember DESC LIMIT " + strconv.Itoa(perpage)
+	}
+
+	row, err := con.QueryContext(ctx, sql_select)
+	helpers.ErrorCheck(err)
+	for row.Next() {
+		var (
+			idagenmember_db, username_agenmember_db, name_agenmember_db string
+		)
+
+		err = row.Scan(&idagenmember_db, &username_agenmember_db, &name_agenmember_db)
+		helpers.ErrorCheck(err)
+
+		//BANK
+		var objbank entities.Model_memberbankshare
+		var arraobjbank []entities.Model_memberbankshare
+		sql_selectbank := `SELECT 
+			idagenmemberbank,idbanktype, norekbank_agenmemberbank, nmownerbank_agenmemberbank 
+			FROM ` + database_memberbank_local + ` 
+			WHERE idagenmember = $1   
+		`
+		row_bank, err_bank := con.QueryContext(ctx, sql_selectbank, idagenmember_db)
+		helpers.ErrorCheck(err_bank)
+		for row_bank.Next() {
+			var (
+				idagenmemberbank_db                                                       int
+				idbanktype_db, norekbank_agenmemberbank_db, nmownerbank_agenmemberbank_db string
+			)
+			err_bank = row_bank.Scan(&idagenmemberbank_db, &idbanktype_db, &norekbank_agenmemberbank_db, &nmownerbank_agenmemberbank_db)
+
+			objbank.Memberbank_id = idagenmemberbank_db
+			objbank.Memberbank_info = idbanktype_db + "-" + norekbank_agenmemberbank_db + "-" + nmownerbank_agenmemberbank_db
+			arraobjbank = append(arraobjbank, objbank)
+		}
+		defer row_bank.Close()
+
+		obj.Member_id = idagenmember_db
+		obj.Member_name = username_agenmember_db + "-" + name_agenmember_db
+		obj.Member_listbank = arraobjbank
+		arraobj = append(arraobj, obj)
+		msg = "Success"
+	}
+	defer row.Close()
+
+	res.Status = fiber.StatusOK
+	res.Message = msg
+	res.Record = arraobj
 	res.Time = time.Since(start).String()
 
 	return res, nil

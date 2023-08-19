@@ -57,8 +57,10 @@ func Init() *fiber.App {
 
 	app.Post("/api/curr", middleware.JWTProtected(), controllers.Currhome)
 	app.Post("/api/bank", middleware.JWTProtected(), controllers.Agenbankhome)
+	app.Post("/api/banklist", middleware.JWTProtected(), controllers.Agenbanklist)
 	app.Post("/api/banksave", middleware.JWTProtected(), controllers.AgenbankSave)
 	app.Post("/api/member", middleware.JWTProtected(), controllers.Memberhome)
+	app.Post("/api/membersearch", middleware.JWTProtected(), controllers.Membersearch)
 	app.Post("/api/membersave", middleware.JWTProtected(), controllers.MemberSave)
 	app.Post("/api/memberbanksave", middleware.JWTProtected(), controllers.MemberBankSave)
 	app.Post("/api/memberbankdelete", middleware.JWTProtected(), controllers.MemberBankDelete)

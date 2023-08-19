@@ -15,11 +15,20 @@ type Model_member struct {
 	Member_create     string      `json:"member_create"`
 	Member_update     string      `json:"member_update"`
 }
+type Model_membershare struct {
+	Member_id       string      `json:"member_id"`
+	Member_name     string      `json:"member_name"`
+	Member_listbank interface{} `json:"member_listbank"`
+}
 type Model_memberbank struct {
 	Memberbank_id          int    `json:"memberbank_id"`
 	Memberbank_idbanktype  string `json:"memberbank_idbanktype"`
 	Memberbank_norek       string `json:"memberbank_norek"`
 	Memberbank_nmownerbank string `json:"memberbank_nmownerbank"`
+}
+type Model_memberbankshare struct {
+	Memberbank_id   int    `json:"memberbank_id"`
+	Memberbank_info string `json:"memberbank_info"`
 }
 
 type Controller_membersave struct {
@@ -46,4 +55,9 @@ type Controller_memberbankdelete struct {
 	Sdata                   string `json:"sdata" validate:"required"`
 	Memberbank_id           int    `json:"memberbank_id" validate:"required"`
 	Memberbank_idagenmember string `json:"memberbank_idagenmember" validate:"required"`
+}
+type Controller_membersharesearch struct {
+	Page   string `json:"page" validate:"required"`
+	Sdata  string `json:"sdata" validate:"required"`
+	Search string `json:"search" `
 }

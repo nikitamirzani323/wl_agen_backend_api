@@ -14,6 +14,7 @@ import (
 )
 
 const Fieldagenbank_home_redis = "LISTAGENBANK_AGEN"
+const Fieldagenbankshare_home_redis = "LISTAGENBANKSHARE_AGEN"
 
 func Agenbankhome(c *fiber.Ctx) error {
 	user := c.Locals("jwt").(*jwt.Token)
@@ -82,6 +83,51 @@ func Agenbankhome(c *fiber.Ctx) error {
 			"record":   arraobj,
 			"listbank": arraobj_listbanktype,
 			"time":     time.Since(render_page).String(),
+		})
+	}
+}
+func Agenbanklist(c *fiber.Ctx) error {
+	user := c.Locals("jwt").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	name := claims["name"].(string)
+	temp_decp := helpers.Decryption(name)
+	_, client_idmasteragen, _, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+
+	var obj entities.Model_agenbankshare
+	var arraobj []entities.Model_agenbankshare
+	render_page := time.Now()
+	resultredis, flag := helpers.GetRedis(Fieldagenbankshare_home_redis + "_" + client_idmasteragen)
+	jsonredis := []byte(resultredis)
+	record_RD, _, _, _ := jsonparser.Get(jsonredis, "record")
+	jsonparser.ArrayEach(record_RD, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		agenbank_id, _ := jsonparser.GetInt(value, "agenbank_id")
+		agenbank_info, _ := jsonparser.GetString(value, "agenbank_info")
+
+		obj.Agenbank_id = int(agenbank_id)
+		obj.Agenbank_info = agenbank_info
+		arraobj = append(arraobj, obj)
+	})
+
+	if !flag {
+		result, err := models.Fetch_agenbankList(client_idmasteragen)
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"status":  fiber.StatusBadRequest,
+				"message": err.Error(),
+				"record":  nil,
+			})
+		}
+		helpers.SetRedis(Fieldagenbankshare_home_redis+"_"+client_idmasteragen, result, 60*time.Minute)
+		fmt.Println("LIST MEMBER BANK MYSQL")
+		return c.JSON(result)
+	} else {
+		fmt.Println("LIST MEMBER BANK CACHE")
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusOK,
+			"message": "Success",
+			"record":  arraobj,
+			"time":    time.Since(render_page).String(),
 		})
 	}
 }

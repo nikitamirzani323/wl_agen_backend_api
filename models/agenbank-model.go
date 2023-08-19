@@ -108,6 +108,52 @@ func Fetch_agenbankHome(idmasteragen string) (helpers.Responsemember, error) {
 
 	return res, nil
 }
+func Fetch_agenbankList(idmasteragen string) (helpers.Response, error) {
+	var obj entities.Model_agenbankshare
+	var arraobj []entities.Model_agenbankshare
+	var res helpers.Response
+	msg := "Data Not Found"
+	con := db.CreateCon()
+	ctx := context.Background()
+	start := time.Now()
+
+	perpage := 50
+
+	sql_select := ""
+	sql_select += ""
+	sql_select += "SELECT "
+	sql_select += "idagenbank , idbanktype, norekbank, nmownerbank "
+	sql_select += "FROM " + database_agenbank_local + "  "
+	sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
+	sql_select += "AND status_agenbank = 'y' "
+	sql_select += "ORDER BY idbanktype ASC   LIMIT " + strconv.Itoa(perpage)
+
+	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
+	helpers.ErrorCheck(err)
+	for row.Next() {
+		var (
+			idagenbank_db                               int
+			idbanktype_db, norekbank_db, nmownerbank_db string
+		)
+
+		err = row.Scan(&idagenbank_db, &idbanktype_db, &norekbank_db, &nmownerbank_db)
+
+		helpers.ErrorCheck(err)
+
+		obj.Agenbank_id = idagenbank_db
+		obj.Agenbank_info = idbanktype_db + "-" + norekbank_db + "-" + nmownerbank_db
+		arraobj = append(arraobj, obj)
+		msg = "Success"
+	}
+	defer row.Close()
+
+	res.Status = fiber.StatusOK
+	res.Message = msg
+	res.Record = arraobj
+	res.Time = time.Since(start).String()
+
+	return res, nil
+}
 
 func Save_agenbank(admin, idmasteragen, tipe, idbank, norek, nmrek, status, sData string, idrecord int) (helpers.Response, error) {
 	var res helpers.Response
