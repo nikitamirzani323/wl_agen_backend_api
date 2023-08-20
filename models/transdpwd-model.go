@@ -150,7 +150,7 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 
 		field_column := tbl_trx_dpwd + tglnow.Format("YYYY-MM")
 		idrecord_counter := Get_counter(field_column)
-		iddpwd := idmasteragen + "-DPWD-" + tglnow.Format("YY") + tglnow.Format("MM") + tglnow.Format("DD") + tglnow.Format("HH") + strconv.Itoa(idrecord_counter)
+		iddpwd := idmasteragen + "DPWD" + tglnow.Format("YY") + tglnow.Format("MM") + tglnow.Format("DD") + tglnow.Format("HH") + strconv.Itoa(idrecord_counter)
 
 		flag_insert, msg_insert := Exec_SQL(sql_insert, tbl_trx_dpwd, "INSERT",
 			iddpwd, idmasteragen, idmaster,
