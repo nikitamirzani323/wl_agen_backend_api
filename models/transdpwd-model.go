@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -28,7 +29,7 @@ func Fetch_transdpwdHome(idmasteragen string) (helpers.Response, error) {
 	sql_select := `SELECT 
 			iddpwd , date_dpwd, idcurr,  
 			tipedoc_dpwd , tipeakun_dpwd, idagenmember,  note_bank, ipaddress_dpwd, 
-			amount_dpwd , before_dpwd, after_dpwd,  status_dpwd,
+			(amount_dpwd*multiplier_dpwd) as amount_dpwd , before_dpwd, after_dpwd,  status_dpwd,
 			create_dpwd, to_char(COALESCE(createdate_dpwd,now()), 'YYYY-MM-DD HH24:MI:SS'), 
 			update_dpwd, to_char(COALESCE(updatedate_dpwd,now()), 'YYYY-MM-DD HH24:MI:SS') 
 			FROM ` + tbl_trx_dpwd + `  
@@ -106,6 +107,9 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 	multiplier := _GetMultiplier(idcurr)
 	before := 0
 	after := 0
+	log.Println(tbl_trx_dpwd)
+	log.Println(idcurr)
+	log.Println(multiplier)
 	if sData == "New" {
 		sql_insert := `
 				insert into
@@ -122,16 +126,28 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 				)
 			`
 		tipeakun_dpwd := ""
+		note_bank := "FROM: BANK OUT - TO: BANK IN"
+		temp_bank_out := ""
+		temp_bank_in := ""
 		switch tipedoc {
 		case "DEPOSIT":
 			tipeakun_dpwd = "IN"
+			temp_bank_out = _GetInfoBank(idmasteragen, idmember, "MEMBER", bank_out)
+			temp_bank_in = _GetInfoBank(idmasteragen, idmember, "AGEN", bank_in)
+			note_bank = "FROM: " + temp_bank_out + " - TO:" + temp_bank_in
 		case "WITHDRAW":
 			tipeakun_dpwd = "OUT"
+			temp_bank_out = _GetInfoBank(idmasteragen, idmember, "AGEN", bank_out)
+			temp_bank_in = _GetInfoBank(idmasteragen, idmember, "MEMBER", bank_in)
+			note_bank = "FROM: " + temp_bank_out + " - TO:" + temp_bank_in
 		case "BONUS":
 			tipeakun_dpwd = "OUT"
+			temp_bank_out = _GetInfoBank(idmasteragen, idmember, "AGEN", bank_out)
+			temp_bank_in = _GetInfoBank(idmasteragen, idmember, "MEMBER", bank_in)
+			tipeakun_dpwd = "OUT"
 		}
+		amount_db := amount / multiplier
 
-		note_bank := "FROM: BANK OUT - TO: BANK IN"
 		field_column := tbl_trx_dpwd + tglnow.Format("YYYY-MM")
 		idrecord_counter := Get_counter(field_column)
 		iddpwd := idmasteragen + "-DPWD-" + tglnow.Format("YY") + tglnow.Format("MM") + tglnow.Format("DD") + tglnow.Format("HH") + strconv.Itoa(idrecord_counter)
@@ -139,7 +155,7 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 		flag_insert, msg_insert := Exec_SQL(sql_insert, tbl_trx_dpwd, "INSERT",
 			iddpwd, idmasteragen, idmaster,
 			tglnow.Format("YYYY-MM"), tglnow.Format("YYYY-MM-DD"), idcurr, tipedoc, tipeakun_dpwd, idmember,
-			bank_in, bank_out, note_bank, multiplier, amount, before, after, status, note_dpwd,
+			bank_in, bank_out, note_bank, multiplier, amount_db, before, after, status, note_dpwd,
 			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
 
 		if flag_insert {
@@ -159,6 +175,7 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 			`
 
 		tipeakun_dpwd := ""
+		note_bank := "FROM: BANK OUT - TO: BANK IN"
 		switch tipedoc {
 		case "DEPOSIT":
 			tipeakun_dpwd = "IN"
@@ -169,7 +186,7 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 		}
 		before := 0
 		after := 0
-		note_bank := "FROM: BANK OUT - TO: BANK IN"
+
 		flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
 			tipedoc, tipeakun_dpwd,
 			idmember, bank_in, bank_out, note_bank,
@@ -217,7 +234,7 @@ func _GetMultiplier(idrecord string) float32 {
 
 	sql_select := `SELECT
 		multipliercurr   
-		FROM ` + configs.DB_tbl_mst_cate_bank + `  
+		FROM ` + configs.DB_tbl_mst_curr + `  
 		WHERE idcurr = $1 
 	`
 	row := con.QueryRowContext(ctx, sql_select, idrecord)
@@ -228,4 +245,37 @@ func _GetMultiplier(idrecord string) float32 {
 		helpers.ErrorCheck(e)
 	}
 	return float32(multipliercurr)
+}
+func _GetInfoBank(idmasteragen, idagenmember, tipe string, idrecord int) string {
+	con := db.CreateCon()
+	ctx := context.Background()
+	info := ""
+	bank_id := ""
+	bank_norek := ""
+	bank_nmrek := ""
+	sql_select := ""
+	if tipe == "AGEN" {
+		sql_select = `SELECT
+			idbanktype, norekbank, nmownerbank   
+			FROM ` + configs.DB_tbl_mst_master_agen_bank + `  
+			WHERE idagenbank=` + strconv.Itoa(idrecord) + ` AND idmasteragen='` + idmasteragen + `'    
+		`
+	} else {
+		sql_select = `SELECT
+			idbanktype, norekbank_agenmemberbank, nmownerbank_agenmemberbank   
+			FROM ` + configs.DB_tbl_mst_master_agen_member_bank + `  
+			WHERE idagenmemberbank=` + strconv.Itoa(idrecord) + ` AND idagenmember='` + idagenmember + `'    
+		`
+		log.Println(sql_select)
+	}
+
+	row := con.QueryRowContext(ctx, sql_select)
+	switch e := row.Scan(&bank_id, &bank_norek, &bank_nmrek); e {
+	case sql.ErrNoRows:
+	case nil:
+	default:
+		helpers.ErrorCheck(e)
+	}
+	info = bank_id + "-" + bank_norek + "-" + bank_nmrek
+	return info
 }

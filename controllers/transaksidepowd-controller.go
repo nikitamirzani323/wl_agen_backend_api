@@ -141,7 +141,7 @@ func TransdpwdSave(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 func _deleteredis_transdpwd(idmasteragen string) {
-	val_master := helpers.DeleteRedis(Fieldadmin_home_redis + "_" + idmasteragen)
+	val_master := helpers.DeleteRedis(Fieldtransdpwd_home_redis + "_" + idmasteragen)
 	fmt.Printf("Redis Delete AGEN TRANSAKSI DEPO WD : %d", val_master)
 
 }

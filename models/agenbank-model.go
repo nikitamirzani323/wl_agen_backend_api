@@ -125,10 +125,10 @@ func Fetch_agenbankList(idmasteragen string) (helpers.Response, error) {
 	sql_select += "idagenbank , idbanktype, norekbank, nmownerbank "
 	sql_select += "FROM " + database_agenbank_local + "  "
 	sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
-	sql_select += "AND status_agenbank = 'y' "
+	sql_select += "AND status_agenbank='Y' "
 	sql_select += "ORDER BY idbanktype ASC   LIMIT " + strconv.Itoa(perpage)
 
-	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
+	row, err := con.QueryContext(ctx, sql_select)
 	helpers.ErrorCheck(err)
 	for row.Next() {
 		var (
