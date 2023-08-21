@@ -28,8 +28,9 @@ func Fetch_transdpwdHome(idmasteragen string) (helpers.Response, error) {
 	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
 	sql_select := `SELECT 
 			iddpwd , date_dpwd, idcurr,  
-			tipedoc_dpwd , tipeakun_dpwd, idagenmember,  note_bank, ipaddress_dpwd, 
-			(amount_dpwd*multiplier_dpwd) as amount_dpwd , before_dpwd, after_dpwd,  status_dpwd,
+			tipedocuser_dpwd, tipedoc_dpwd , tipeakun_dpwd, idagenmember,  ipaddress_dpwd, timezone_dpwd,  
+			bank_in, bank_in_info , bank_out, bank_out_info, 
+			round(amount_dpwd*multiplier_dpwd) as amount_dpwd , before_dpwd, after_dpwd,  status_dpwd,
 			create_dpwd, to_char(COALESCE(createdate_dpwd,now()), 'YYYY-MM-DD HH24:MI:SS'), 
 			update_dpwd, to_char(COALESCE(updatedate_dpwd,now()), 'YYYY-MM-DD HH24:MI:SS') 
 			FROM ` + tbl_trx_dpwd + `  
@@ -39,14 +40,16 @@ func Fetch_transdpwdHome(idmasteragen string) (helpers.Response, error) {
 	helpers.ErrorCheck(err)
 	for row.Next() {
 		var (
-			iddpwd_db, date_dpwd_db, idcurr_db                                                                  string
-			tipedoc_dpwd_db, tipeakun_dpwd_db, idagenmember_db, note_bank_db, ipaddress_dpwd_db, status_dpwd_db string
-			amount_dpwd_db, before_dpwd_db, after_dpwd_db                                                       float32
-			create_dpwd_db, createdate_dpwd_db, update_dpwd_db, updatedate_dpwd_db                              string
+			iddpwd_db, date_dpwd_db, idcurr_db                                                                                                                              string
+			tipedocuser_dpwd_db, tipedoc_dpwd_db, tipeakun_dpwd_db, idagenmember_db, ipaddress_dpwd_db, timezone_dpwd_db, bank_in_info_db, bank_out_info_db, status_dpwd_db string
+			bank_in_db, bank_out_db                                                                                                                                         int
+			amount_dpwd_db, before_dpwd_db, after_dpwd_db                                                                                                                   float64
+			create_dpwd_db, createdate_dpwd_db, update_dpwd_db, updatedate_dpwd_db                                                                                          string
 		)
 
 		err = row.Scan(&iddpwd_db, &date_dpwd_db, &idcurr_db,
-			&tipedoc_dpwd_db, &tipeakun_dpwd_db, &idagenmember_db, &note_bank_db, &ipaddress_dpwd_db,
+			&tipedocuser_dpwd_db, &tipedoc_dpwd_db, &tipeakun_dpwd_db, &idagenmember_db, &ipaddress_dpwd_db, &timezone_dpwd_db,
+			&bank_in_db, &bank_in_info_db, &bank_out_db, &bank_out_info_db,
 			&amount_dpwd_db, &before_dpwd_db, &after_dpwd_db, &status_dpwd_db,
 			&create_dpwd_db, &createdate_dpwd_db, &update_dpwd_db, &updatedate_dpwd_db)
 
@@ -73,10 +76,16 @@ func Fetch_transdpwdHome(idmasteragen string) (helpers.Response, error) {
 		obj.Transdpwd_date = date_dpwd_db
 		obj.Transdpwd_idcurr = idcurr_db
 		obj.Transdpwd_tipedoc = tipedoc_dpwd_db
+		obj.Transdpwd_tipeuserdoc = tipedocuser_dpwd_db
 		obj.Transdpwd_tipeakun = tipeakun_dpwd_db
 		obj.Transdpwd_idmember = idagenmember_db
-		obj.Transdpwd_notebank = note_bank_db
+		obj.Transdpwd_nmmember = _GetInfoMember(idmasteragen, idagenmember_db)
 		obj.Transdpwd_ipaddress = ipaddress_dpwd_db
+		obj.Transdpwd_timezone = timezone_dpwd_db
+		obj.Transdpwd_bank_in = bank_in_db
+		obj.Transdpwd_bank_in_info = bank_in_info_db
+		obj.Transdpwd_bank_out = bank_out_db
+		obj.Transdpwd_bank_out_info = bank_out_info_db
 		obj.Transdpwd_amount = amount_dpwd_db
 		obj.Transdpwd_before = before_dpwd_db
 		obj.Transdpwd_after = after_dpwd_db
@@ -115,18 +124,19 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 				insert into
 				` + tbl_trx_dpwd + ` (
 					iddpwd , idmasteragen, idmaster, 
-					yearmonth_dpwd , date_dpwd, idcurr, tipedoc_dpwd, tipeakun_dpwd, idagenmember, 
-					bank_int , bank_out, note_bank, multiplier_dpwd, amount_dpwd, before_dpwd, after_dpwd, status_dpwd, note_dpwd, 
+					yearmonth_dpwd , date_dpwd, idcurr, tipedocuser_dpwd, tipedoc_dpwd, tipeakun_dpwd, idagenmember, 
+					bank_in, bank_in_info , bank_out, bank_out_info, 
+					multiplier_dpwd, amountdefault_dpwd, amount_dpwd, before_dpwd, after_dpwd, status_dpwd, note_dpwd, 
 					create_dpwd, createdate_dpwd  
 				) values (
 					$1, $2, $3,   
-					$4, $5, $6, $7, $8, $9,   
-					$10, $11, $12, $13, $14, $15, $16, $17, $18,     
-					$19, $20
+					$4, $5, $6, $7, $8, $9, $10,    
+					$11, $12, $13, $14,     
+					$15, $16, $17, $18, $19, $20, $21,      
+					$22, $23
 				)
 			`
 		tipeakun_dpwd := ""
-		note_bank := "FROM: BANK OUT - TO: BANK IN"
 		temp_bank_out := ""
 		temp_bank_in := ""
 		switch tipedoc {
@@ -134,12 +144,10 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 			tipeakun_dpwd = "IN"
 			temp_bank_out = _GetInfoBank(idmasteragen, idmember, "MEMBER", bank_out)
 			temp_bank_in = _GetInfoBank(idmasteragen, idmember, "AGEN", bank_in)
-			note_bank = "FROM: " + temp_bank_out + " - TO:" + temp_bank_in
 		case "WITHDRAW":
 			tipeakun_dpwd = "OUT"
 			temp_bank_out = _GetInfoBank(idmasteragen, idmember, "AGEN", bank_out)
 			temp_bank_in = _GetInfoBank(idmasteragen, idmember, "MEMBER", bank_in)
-			note_bank = "FROM: " + temp_bank_out + " - TO:" + temp_bank_in
 		case "BONUS":
 			tipeakun_dpwd = "OUT"
 			temp_bank_out = _GetInfoBank(idmasteragen, idmember, "AGEN", bank_out)
@@ -154,8 +162,9 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 
 		flag_insert, msg_insert := Exec_SQL(sql_insert, tbl_trx_dpwd, "INSERT",
 			iddpwd, idmasteragen, idmaster,
-			tglnow.Format("YYYY-MM"), tglnow.Format("YYYY-MM-DD"), idcurr, tipedoc, tipeakun_dpwd, idmember,
-			bank_in, bank_out, note_bank, multiplier, amount_db, before, after, status, note_dpwd,
+			tglnow.Format("YYYY-MM"), tglnow.Format("YYYY-MM-DD"), idcurr, "A", tipedoc, tipeakun_dpwd, idmember,
+			bank_in, temp_bank_in, bank_out, temp_bank_out,
+			multiplier, amount, amount_db, before, after, status, note_dpwd,
 			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
 
 		if flag_insert {
@@ -266,7 +275,6 @@ func _GetInfoBank(idmasteragen, idagenmember, tipe string, idrecord int) string 
 			FROM ` + configs.DB_tbl_mst_master_agen_member_bank + `  
 			WHERE idagenmemberbank=` + strconv.Itoa(idrecord) + ` AND idagenmember='` + idagenmember + `'    
 		`
-		log.Println(sql_select)
 	}
 
 	row := con.QueryRowContext(ctx, sql_select)
@@ -278,4 +286,24 @@ func _GetInfoBank(idmasteragen, idagenmember, tipe string, idrecord int) string 
 	}
 	info = bank_id + "-" + bank_norek + "-" + bank_nmrek
 	return info
+}
+func _GetInfoMember(idmasteragen, idagenmember string) string {
+	con := db.CreateCon()
+	ctx := context.Background()
+	username_agenmember_db := ""
+	name_agenmember_db := ""
+
+	sql_select := `SELECT
+		username_agenmember, name_agenmember   
+		FROM ` + configs.DB_tbl_mst_master_agen_member + `  
+		WHERE idagenmember=$1 AND idmasteragen=$2
+	`
+	row := con.QueryRowContext(ctx, sql_select, idagenmember, idmasteragen)
+	switch e := row.Scan(&username_agenmember_db, &name_agenmember_db); e {
+	case sql.ErrNoRows:
+	case nil:
+	default:
+		helpers.ErrorCheck(e)
+	}
+	return username_agenmember_db + "-" + name_agenmember_db
 }
