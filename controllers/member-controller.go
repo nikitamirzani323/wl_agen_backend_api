@@ -42,6 +42,7 @@ func Memberhome(c *fiber.Ctx) error {
 		member_name, _ := jsonparser.GetString(value, "member_name")
 		member_phone, _ := jsonparser.GetString(value, "member_phone")
 		member_email, _ := jsonparser.GetString(value, "member_email")
+		member_credit, _ := jsonparser.GetFloat(value, "member_credit")
 		member_status, _ := jsonparser.GetString(value, "member_status")
 		member_status_css, _ := jsonparser.GetString(value, "member_status_css")
 		member_create, _ := jsonparser.GetString(value, "member_create")
@@ -71,6 +72,7 @@ func Memberhome(c *fiber.Ctx) error {
 		obj.Member_name = member_name
 		obj.Member_phone = member_phone
 		obj.Member_email = member_email
+		obj.Member_credit = member_credit
 		obj.Member_listbank = arraobjbank
 		obj.Member_status = member_status
 		obj.Member_status_css = member_status_css

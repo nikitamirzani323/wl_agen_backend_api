@@ -32,7 +32,8 @@ func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 	sql_select := `SELECT 
 			idagenmember , username_agenmember, timezone_agenmember,  ipaddress_agenmember, 
 			to_char(COALESCE(lastlogin_agenmember,now()), 'YYYY-MM-DD HH24:MI:SS'), 
-			name_agenmember , phone_agenmember, email_agenmember,  status_agenmember,
+			name_agenmember , phone_agenmember, email_agenmember,  status_agenmember, 
+			(cashin_agenmember-cashout_agenmember) as credit , 
 			create_agenmember, to_char(COALESCE(createdate_agenmember,now()), 'YYYY-MM-DD HH24:MI:SS'), 
 			update_agenmember, to_char(COALESCE(updatedate_agenmember,now()), 'YYYY-MM-DD HH24:MI:SS') 
 			FROM ` + database_member_local + `  
@@ -45,11 +46,13 @@ func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 		var (
 			idagenmember_db, username_agenmember_db, timezone_agenmember_db, ipaddress_agenmember_db, lastlogin_agenmember_db string
 			name_agenmember_db, phone_agenmember_db, email_agenmember_db, status_agenmember_db                                string
+			credit_db                                                                                                         float64
 			create_agenmember_db, createdate_agenmember_db, update_agenmember_db, updatedate_agenmember_db                    string
 		)
 
 		err = row.Scan(&idagenmember_db, &username_agenmember_db, &timezone_agenmember_db, &ipaddress_agenmember_db, &lastlogin_agenmember_db,
 			&name_agenmember_db, &phone_agenmember_db, &email_agenmember_db, &status_agenmember_db,
+			&credit_db,
 			&create_agenmember_db, &createdate_agenmember_db, &update_agenmember_db, &updatedate_agenmember_db)
 
 		helpers.ErrorCheck(err)
@@ -91,6 +94,10 @@ func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 		}
 		defer row_bank.Close()
 
+		idcurr := _GetDefaultCurr(idmasteragen)
+		multiplier := _GetMultiplier(idcurr)
+		var credit float64 = credit_db * float64(multiplier)
+
 		obj.Member_id = idagenmember_db
 		obj.Member_username = username_agenmember_db
 		obj.Member_timezone = timezone_agenmember_db
@@ -99,6 +106,7 @@ func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 		obj.Member_name = name_agenmember_db
 		obj.Member_phone = phone_agenmember_db
 		obj.Member_email = email_agenmember_db
+		obj.Member_credit = credit
 		obj.Member_listbank = arraobjbank
 		obj.Member_status = status_agenmember_db
 		obj.Member_status_css = status_css

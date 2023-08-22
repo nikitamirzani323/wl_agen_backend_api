@@ -10,6 +10,7 @@ type Model_member struct {
 	Member_phone      string      `json:"member_phone"`
 	Member_email      string      `json:"member_email"`
 	Member_listbank   interface{} `json:"member_listbank"`
+	Member_credit     float64     `json:"member_credit"`
 	Member_status     string      `json:"member_status"`
 	Member_status_css string      `json:"member_status_css"`
 	Member_create     string      `json:"member_create"`

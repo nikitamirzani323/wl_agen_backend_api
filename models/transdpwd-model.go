@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -222,38 +223,48 @@ func Update_statustransdpwd(admin, idrecord, idmasteragen, idmaster, idmember, n
 	if status == "APPROVED" {
 		tipe, status_db, _, amount := _GetDepoWd(idmasteragen, idrecord)
 		if status_db == "PROCESS" {
-			sql_update := `
-				UPDATE 
-				` + tbl_trx_dpwd + `  
-				SET status_dpwd=$1, before_dpwd=$2, after_dpwd=$3,  
-				update_dpwd=$4, updatedate_dpwd=$5 
-				WHERE iddpwd=$6  AND idmasteragen=$7   
-			`
-
+			flag := true
 			cash_in, cash_out := _GetMemberCredit(idmasteragen, idmember)
 
 			var credit_member float64 = cash_in - cash_out
 			var before float64 = 0
 			var after float64 = 0
 			tipeakun := ""
-			if tipe == "DEPOSIT" {
+			switch tipe {
+			case "DEPOSIT":
 				before = credit_member
 				after = before + amount
 				tipeakun = "IN"
-			}
-
-			flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
-				status, before, after,
-				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord, idmasteragen)
-
-			if flag_update {
-				msg = "Succes"
-				flag := _Save_transaksi(admin, idrecord, idmasteragen, idmaster, idcurr, "TRANSAKSI", tipeakun, idmember, amount, before, after)
-				if flag {
-					_Save_creditmember(admin, idmember, idmasteragen, tipeakun, amount)
+			case "WITHDRAW":
+				before = credit_member
+				after = before - amount
+				tipeakun = "OUT"
+				if amount > credit_member {
+					flag = false
+					log.Println("The Amount exceed Credit Member")
 				}
-			} else {
-				fmt.Println(msg_update)
+			}
+			if flag {
+				sql_update := `
+					UPDATE 
+					` + tbl_trx_dpwd + `  
+					SET status_dpwd=$1, before_dpwd=$2, after_dpwd=$3,  
+					update_dpwd=$4, updatedate_dpwd=$5 
+					WHERE iddpwd=$6  AND idmasteragen=$7   
+				`
+				flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
+					status, before, after,
+					admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord, idmasteragen)
+
+				if flag_update {
+					msg = "Succes"
+					flag := _Save_transaksi(admin, idrecord, idmasteragen, idmaster, idcurr, "TRANSAKSI", tipeakun, idmember, amount, before, after)
+					if flag {
+						_Save_creditmember(admin, idmember, idmasteragen, tipeakun, amount)
+					}
+				} else {
+					fmt.Println(msg_update)
+				}
 			}
 		}
 	} else if status == "REJECTED" {
