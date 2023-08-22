@@ -37,3 +37,11 @@ type Controller_transdpwdsave struct {
 	Transdpwd_note      string  `json:"transdpwd_note"`
 	Transdpwd_status    string  `json:"transdpwd_status" validate:"required"`
 }
+type Controller_transdpwdupdate struct {
+	Page               string `json:"page" validate:"required"`
+	Sdata              string `json:"sdata" validate:"required"`
+	Transdpwd_id       string `json:"transdpwd_id"`
+	Transdpwd_idmember string `json:"transdpwd_idmember" validate:"required"`
+	Transdpwd_note     string `json:"transdpwd_note"`
+	Transdpwd_status   string `json:"transdpwd_status" validate:"required"`
+}

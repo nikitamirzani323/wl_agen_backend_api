@@ -207,6 +207,7 @@ func Exec_SQL(sql, table, action string, args ...interface{}) (bool, string) {
 }
 func Get_mappingdatabase(codeagen string) (string, string) {
 	tbl_trx_dpwd := `"db_` + strings.ToUpper(codeagen) + `".tbl_trx_dpwd`
+	tbl_trx_transaksi := `"db_` + strings.ToUpper(codeagen) + `".tbl_trx_transaksi`
 
-	return tbl_trx_dpwd, ""
+	return tbl_trx_dpwd, tbl_trx_transaksi
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -27,10 +26,10 @@ func Fetch_transdpwdHome(idmasteragen string) (helpers.Response, error) {
 
 	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
 	sql_select := `SELECT 
-			iddpwd , date_dpwd, idcurr,  
+			iddpwd , to_char(COALESCE(date_dpwd,now()), 'YYYY-MM-DD'), idcurr,  
 			tipedocuser_dpwd, tipedoc_dpwd , tipeakun_dpwd, idagenmember,  ipaddress_dpwd, timezone_dpwd,  
 			bank_in, bank_in_info , bank_out, bank_out_info, 
-			round(amount_dpwd*multiplier_dpwd) as amount_dpwd , before_dpwd, after_dpwd,  status_dpwd,
+			round(amount_dpwd*multiplier_dpwd) as amount_dpwd , round(before_dpwd*multiplier_dpwd) as before_dpwd , round(after_dpwd*multiplier_dpwd) as after_dpwd ,  status_dpwd,
 			create_dpwd, to_char(COALESCE(createdate_dpwd,now()), 'YYYY-MM-DD HH24:MI:SS'), 
 			update_dpwd, to_char(COALESCE(updatedate_dpwd,now()), 'YYYY-MM-DD HH24:MI:SS') 
 			FROM ` + tbl_trx_dpwd + `  
@@ -116,9 +115,6 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 	multiplier := _GetMultiplier(idcurr)
 	before := 0
 	after := 0
-	log.Println(tbl_trx_dpwd)
-	log.Println(idcurr)
-	log.Println(multiplier)
 	if sData == "New" {
 		sql_insert := `
 				insert into
@@ -216,7 +212,146 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 
 	return res, nil
 }
+func Update_statustransdpwd(admin, idrecord, idmasteragen, idmaster, idmember, note, status string) (helpers.Response, error) {
+	var res helpers.Response
+	msg := "Failed"
+	tglnow, _ := goment.New()
+	render_page := time.Now()
+	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
+	idcurr := _GetDefaultCurr(idmasteragen)
+	if status == "APPROVED" {
+		tipe, status_db, _, amount := _GetDepoWd(idmasteragen, idrecord)
+		if status_db == "PROCESS" {
+			sql_update := `
+				UPDATE 
+				` + tbl_trx_dpwd + `  
+				SET status_dpwd=$1, before_dpwd=$2, after_dpwd=$3,  
+				update_dpwd=$4, updatedate_dpwd=$5 
+				WHERE iddpwd=$6  AND idmasteragen=$7   
+			`
 
+			cash_in, cash_out := _GetMemberCredit(idmasteragen, idmember)
+
+			var credit_member float64 = cash_in - cash_out
+			var before float64 = 0
+			var after float64 = 0
+			tipeakun := ""
+			if tipe == "DEPOSIT" {
+				before = credit_member
+				after = before + amount
+				tipeakun = "IN"
+			}
+
+			flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
+				status, before, after,
+				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord, idmasteragen)
+
+			if flag_update {
+				msg = "Succes"
+				flag := _Save_transaksi(admin, idrecord, idmasteragen, idmaster, idcurr, "TRANSAKSI", tipeakun, idmember, amount, before, after)
+				if flag {
+					_Save_creditmember(admin, idmember, idmasteragen, tipeakun, amount)
+				}
+			} else {
+				fmt.Println(msg_update)
+			}
+		}
+	} else if status == "REJECTED" {
+		_, status_db, _, _ := _GetDepoWd(idmasteragen, idrecord)
+		if status_db == "PROCESS" {
+			sql_update := `
+				UPDATE 
+				` + tbl_trx_dpwd + `  
+				SET status_dpwd=$1, note_dpwd=$2,  
+				update_dpwd=$3, updatedate_dpwd=$4  
+				WHERE iddpwd=$5  AND idmasteragen=$6   
+			`
+
+			flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
+				status, note,
+				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord, idmasteragen)
+
+			if flag_update {
+				msg = "Succes"
+			} else {
+				fmt.Println(msg_update)
+			}
+		}
+	}
+
+	res.Status = fiber.StatusOK
+	res.Message = msg
+	res.Record = nil
+	res.Time = time.Since(render_page).String()
+
+	return res, nil
+}
+
+func _Save_transaksi(admin, iddpwd, idmasteragen, idmaster, idcurr, tipedoc, tipeakun, idmember string, amount, before, after float64) bool {
+	tglnow, _ := goment.New()
+	_, tbl_trx_transaksi := Get_mappingdatabase(idmasteragen)
+	flag := false
+
+	sql_insert := `
+				insert into
+				` + tbl_trx_transaksi + ` (
+					idtransaksi , idother, idmasteragen, idmaster, 
+					yearmonth_transaksi , date_transaksi, idcurr, tipedoc_transaksi, tipeakun_transaksi, idagenmember, 
+					amount_transaksi, before_transaksi, after_transaksi,  
+					create_transaksi, createdate_transaksi  
+				) values (
+					$1, $2, $3, $4,  
+					$5, $6, $7, $8, $9, $10, 
+					$11, $12, $13,          
+					$14, $15 
+				)
+			`
+
+	field_column := tbl_trx_transaksi + tglnow.Format("YYYY-MM")
+	idrecord_counter := Get_counter(field_column)
+	idtransaksi := idmasteragen + "TRANS" + tglnow.Format("YY") + tglnow.Format("MM") + tglnow.Format("DD") + tglnow.Format("HH") + strconv.Itoa(idrecord_counter)
+
+	flag_insert, msg_insert := Exec_SQL(sql_insert, tbl_trx_transaksi, "INSERT",
+		idtransaksi, iddpwd, idmasteragen, idmaster,
+		tglnow.Format("YYYY-MM"), tglnow.Format("YYYY-MM-DD"), idcurr, tipedoc, tipeakun, idmember,
+		amount, before, after,
+		admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
+
+	if flag_insert {
+		flag = true
+	} else {
+		fmt.Println(msg_insert)
+	}
+	return flag
+}
+func _Save_creditmember(admin, idmember, idmasteragen, tipe string, amount float64) {
+	tglnow, _ := goment.New()
+
+	c_in_db, c_out_db := _GetMemberCredit(idmasteragen, idmember)
+	var c_in float64 = 0
+	var c_out float64 = 0
+	if tipe == "IN" {
+		c_in = c_in_db + amount
+		c_out = c_out_db
+	} else {
+		c_in = c_in_db
+		c_out = c_out_db + amount
+	}
+	sql_update := `
+		UPDATE 
+		` + configs.DB_tbl_mst_master_agen_member + `  
+		SET cashin_agenmember=$1, cashout_agenmember=$2, 
+		update_agenmember=$3, updatedate_agenmember=$4 
+		WHERE idagenmember=$5  AND idmasteragen=$6   
+	`
+
+	flag_update, msg_update := Exec_SQL(sql_update, configs.DB_tbl_mst_master_agen_member, "UPDATE",
+		c_in, c_out,
+		admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmember, idmasteragen)
+	if !flag_update {
+		fmt.Println(msg_update)
+	}
+}
 func _GetDefaultCurr(idrecord string) string {
 	con := db.CreateCon()
 	ctx := context.Background()
@@ -306,4 +441,48 @@ func _GetInfoMember(idmasteragen, idagenmember string) string {
 		helpers.ErrorCheck(e)
 	}
 	return username_agenmember_db + "-" + name_agenmember_db
+}
+func _GetDepoWd(idmasteragen, iddpwd string) (string, string, float64, float64) {
+	con := db.CreateCon()
+	ctx := context.Background()
+	tipedoc_db := ""
+	status_db := ""
+	multiplier_db := 0
+	amount_db := 0
+
+	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
+
+	sql_select := `SELECT
+		tipedoc_dpwd,status_dpwd, multiplier_dpwd, amount_dpwd   
+		FROM ` + tbl_trx_dpwd + `  
+		WHERE iddpwd=$1 AND idmasteragen=$2
+	`
+	row := con.QueryRowContext(ctx, sql_select, iddpwd, idmasteragen)
+	switch e := row.Scan(&tipedoc_db, &status_db, &multiplier_db, &amount_db); e {
+	case sql.ErrNoRows:
+	case nil:
+	default:
+		helpers.ErrorCheck(e)
+	}
+	return tipedoc_db, status_db, float64(multiplier_db), float64(amount_db)
+}
+func _GetMemberCredit(idmasteragen, idagenmember string) (float64, float64) {
+	con := db.CreateCon()
+	ctx := context.Background()
+	cash_in_db := 0
+	cash_out_db := 0
+
+	sql_select := `SELECT
+		cashin_agenmember, cashout_agenmember   
+		FROM ` + configs.DB_tbl_mst_master_agen_member + `  
+		WHERE idagenmember=$1 AND idmasteragen=$2
+	`
+	row := con.QueryRowContext(ctx, sql_select, idagenmember, idmasteragen)
+	switch e := row.Scan(&cash_in_db, &cash_out_db); e {
+	case sql.ErrNoRows:
+	case nil:
+	default:
+		helpers.ErrorCheck(e)
+	}
+	return float64(cash_in_db), float64(cash_out_db)
 }

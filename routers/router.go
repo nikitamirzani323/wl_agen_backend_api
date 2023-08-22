@@ -67,6 +67,7 @@ func Init() *fiber.App {
 
 	app.Post("/api/transaksidepowd", middleware.JWTProtected(), controllers.Transdpwdhome)
 	app.Post("/api/transaksidepowdsave", middleware.JWTProtected(), controllers.TransdpwdSave)
+	app.Post("/api/transaksidepowdupdate", middleware.JWTProtected(), controllers.TransdpwdUpdate)
 
 	return app
 }

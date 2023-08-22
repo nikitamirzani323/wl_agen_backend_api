@@ -154,6 +154,7 @@ func Membersearch(c *fiber.Ctx) error {
 	jsonparser.ArrayEach(record_RD, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 		member_id, _ := jsonparser.GetString(value, "member_id")
 		member_name, _ := jsonparser.GetString(value, "member_name")
+		member_credit, _ := jsonparser.GetFloat(value, "member_credit")
 
 		var objbank entities.Model_memberbankshare
 		var arraobjbank []entities.Model_memberbankshare
@@ -169,6 +170,7 @@ func Membersearch(c *fiber.Ctx) error {
 
 		obj.Member_id = member_id
 		obj.Member_name = member_name
+		obj.Member_credit = float64(member_credit)
 		obj.Member_listbank = arraobjbank
 		arraobj = append(arraobj, obj)
 	})

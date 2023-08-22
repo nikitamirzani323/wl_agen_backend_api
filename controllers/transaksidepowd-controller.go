@@ -152,6 +152,57 @@ func TransdpwdSave(c *fiber.Ctx) error {
 	_deleteredis_transdpwd(client_idmasteragen)
 	return c.JSON(result)
 }
+func TransdpwdUpdate(c *fiber.Ctx) error {
+	var errors []*helpers.ErrorResponse
+	client := new(entities.Controller_transdpwdupdate)
+	validate := validator.New()
+	if err := c.BodyParser(client); err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": err.Error(),
+			"record":  nil,
+		})
+	}
+
+	err := validate.Struct(client)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			var element helpers.ErrorResponse
+			element.Field = err.StructField()
+			element.Tag = err.Tag()
+			errors = append(errors, &element)
+		}
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": "validation",
+			"record":  errors,
+		})
+	}
+	user := c.Locals("jwt").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	name := claims["name"].(string)
+	temp_decp := helpers.Decryption(name)
+	client_idmaster, client_idmasteragen, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+
+	// admin, idrecord, idmasteragen, idmaster, idmember, note, status
+	result, err := models.Update_statustransdpwd(
+		client_admin,
+		client.Transdpwd_id, client_idmasteragen, client_idmaster, client.Transdpwd_idmember,
+		client.Transdpwd_note, client.Transdpwd_status)
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": err.Error(),
+			"record":  nil,
+		})
+	}
+
+	_deleteredis_transdpwd(client_idmasteragen)
+	return c.JSON(result)
+}
 func _deleteredis_transdpwd(idmasteragen string) {
 	val_master := helpers.DeleteRedis(Fieldtransdpwd_home_redis + "_" + idmasteragen)
 	fmt.Printf("Redis Delete AGEN TRANSAKSI DEPO WD : %d", val_master)

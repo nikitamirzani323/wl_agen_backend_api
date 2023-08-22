@@ -155,7 +155,8 @@ func Fetch_memberSearch(idmasteragen, search string) (helpers.Response, error) {
 	sql_select := ""
 	sql_select += ""
 	sql_select += "SELECT "
-	sql_select += "idagenmember , username_agenmember, name_agenmember "
+	sql_select += "idagenmember , username_agenmember, name_agenmember, "
+	sql_select += "cashin_agenmember , cashout_agenmember "
 	sql_select += "FROM " + database_member_local + "  "
 	if search == "" {
 		sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
@@ -171,9 +172,11 @@ func Fetch_memberSearch(idmasteragen, search string) (helpers.Response, error) {
 	for row.Next() {
 		var (
 			idagenmember_db, username_agenmember_db, name_agenmember_db string
+			cashin_agenmember_db, cashout_agenmember_db                 float64
 		)
 
-		err = row.Scan(&idagenmember_db, &username_agenmember_db, &name_agenmember_db)
+		err = row.Scan(&idagenmember_db, &username_agenmember_db, &name_agenmember_db,
+			&cashin_agenmember_db, &cashout_agenmember_db)
 		helpers.ErrorCheck(err)
 
 		//BANK
@@ -198,9 +201,13 @@ func Fetch_memberSearch(idmasteragen, search string) (helpers.Response, error) {
 			arraobjbank = append(arraobjbank, objbank)
 		}
 		defer row_bank.Close()
+		idcurr := _GetDefaultCurr(idmasteragen)
+		multiplier := _GetMultiplier(idcurr)
+		var credit float64 = (cashin_agenmember_db - cashout_agenmember_db) * float64(multiplier)
 
 		obj.Member_id = idagenmember_db
 		obj.Member_name = username_agenmember_db + "-" + name_agenmember_db
+		obj.Member_credit = credit
 		obj.Member_listbank = arraobjbank
 		arraobj = append(arraobj, obj)
 		msg = "Success"
