@@ -24,7 +24,7 @@ func Fetch_transdpwdHome(idmasteragen string) (helpers.Response, error) {
 	ctx := context.Background()
 	start := time.Now()
 
-	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
+	_, _, tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
 	sql_select := `SELECT 
 			iddpwd , to_char(COALESCE(date_dpwd,now()), 'YYYY-MM-DD'), idcurr,  
 			tipedocuser_dpwd, tipedoc_dpwd , tipeakun_dpwd, idagenmember,  ipaddress_dpwd, timezone_dpwd,  
@@ -109,7 +109,7 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 	msg := "Failed"
 	tglnow, _ := goment.New()
 	render_page := time.Now()
-	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
+	_, _, tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
 
 	idcurr := _GetDefaultCurr(idmasteragen)
 	multiplier := _GetMultiplier(idcurr)
@@ -204,13 +204,13 @@ func Update_statustransdpwd(admin, idrecord, idmasteragen, idmaster, idmember, n
 	msg := "Failed"
 	tglnow, _ := goment.New()
 	render_page := time.Now()
-	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
+	tbl_mst_member, _, tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
 	idcurr := _GetDefaultCurr(idmasteragen)
 	if status == "APPROVED" {
 		tipe, status_db, _, amount := _GetDepoWd(idmasteragen, idrecord)
 		if status_db == "PROCESS" {
 			flag := true
-			cash_in, cash_out := _GetMemberCredit(idmasteragen, idmember)
+			cash_in, cash_out := _GetMemberCredit(idmasteragen, idmember, tbl_mst_member)
 
 			var credit_member float64 = cash_in - cash_out
 			var before float64 = 0
@@ -247,7 +247,7 @@ func Update_statustransdpwd(admin, idrecord, idmasteragen, idmaster, idmember, n
 					msg = "Succes"
 					flag := _Save_transaksi(admin, idrecord, idmasteragen, idmaster, idcurr, "TRANSAKSI", tipeakun, idmember, amount, before, after)
 					if flag {
-						_Save_creditmember(admin, idmember, idmasteragen, tipeakun, amount)
+						_Save_creditmember(admin, idmember, idmasteragen, tipeakun, tbl_mst_member, amount)
 						//UPDATE CREDIT AGEN + MASTER
 						_Save_creditagenandmaster(admin, idmasteragen, tipeakun, amount)
 					}
@@ -289,9 +289,8 @@ func Update_statustransdpwd(admin, idrecord, idmasteragen, idmaster, idmember, n
 
 func _Save_transaksi(admin, iddpwd, idmasteragen, idmaster, idcurr, tipedoc, tipeakun, idmember string, amount, before, after float64) bool {
 	tglnow, _ := goment.New()
-	_, tbl_trx_transaksi := Get_mappingdatabase(idmasteragen)
+	_, _, tbl_trx_dpwd, tbl_trx_transaksi := Get_mappingdatabase(idmasteragen)
 	flag := false
-	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
 	sql_insert := `
 				insert into
 				` + tbl_trx_transaksi + ` (
@@ -341,10 +340,10 @@ func _Save_transaksi(admin, iddpwd, idmasteragen, idmaster, idcurr, tipedoc, tip
 	}
 	return flag
 }
-func _Save_creditmember(admin, idmember, idmasteragen, tipe string, amount float64) {
+func _Save_creditmember(admin, idmember, idmasteragen, tipe, table string, amount float64) {
 	tglnow, _ := goment.New()
 
-	c_in_db, c_out_db := _GetMemberCredit(idmasteragen, idmember)
+	c_in_db, c_out_db := _GetMemberCredit(idmasteragen, idmember, table)
 	var c_in float64 = 0
 	var c_out float64 = 0
 	if tipe == "IN" {
@@ -356,13 +355,13 @@ func _Save_creditmember(admin, idmember, idmasteragen, tipe string, amount float
 	}
 	sql_update := `
 		UPDATE 
-		` + configs.DB_tbl_mst_master_agen_member + `  
-		SET cashin_agenmember=$1, cashout_agenmember=$2, 
-		update_agenmember=$3, updatedate_agenmember=$4 
-		WHERE idagenmember=$5  AND idmasteragen=$6   
+		` + table + `  
+		SET cashin_member=$1, cashout_member=$2, 
+		update_member=$3, updatedate_member=$4 
+		WHERE idmember=$5  AND idmasteragen=$6   
 	`
 
-	flag_update, msg_update := Exec_SQL(sql_update, configs.DB_tbl_mst_master_agen_member, "UPDATE",
+	flag_update, msg_update := Exec_SQL(sql_update, table, "UPDATE",
 		c_in, c_out,
 		admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmember, idmasteragen)
 	if !flag_update {
@@ -520,7 +519,7 @@ func _GetDepoWd(idmasteragen, iddpwd string) (string, string, float64, float64) 
 	multiplier_db := 0
 	amount_db := 0
 
-	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
+	_, _, tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
 
 	sql_select := `SELECT
 		tipedoc_dpwd,status_dpwd, multiplier_dpwd, amount_dpwd   
@@ -536,18 +535,18 @@ func _GetDepoWd(idmasteragen, iddpwd string) (string, string, float64, float64) 
 	}
 	return tipedoc_db, status_db, float64(multiplier_db), float64(amount_db)
 }
-func _GetMemberCredit(idmasteragen, idagenmember string) (float64, float64) {
+func _GetMemberCredit(idmasteragen, idmember, table string) (float64, float64) {
 	con := db.CreateCon()
 	ctx := context.Background()
 	cash_in_db := 0
 	cash_out_db := 0
 
 	sql_select := `SELECT
-		cashin_agenmember, cashout_agenmember   
-		FROM ` + configs.DB_tbl_mst_master_agen_member + `  
-		WHERE idagenmember=$1 AND idmasteragen=$2
+		cashin_member, cashout_member    
+		FROM ` + table + `  
+		WHERE idmember=$1 AND idmasteragen=$2 
 	`
-	row := con.QueryRowContext(ctx, sql_select, idagenmember, idmasteragen)
+	row := con.QueryRowContext(ctx, sql_select, idmember, idmasteragen)
 	switch e := row.Scan(&cash_in_db, &cash_out_db); e {
 	case sql.ErrNoRows:
 	case nil:

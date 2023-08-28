@@ -45,18 +45,18 @@ type Controller_membersave struct {
 	Member_status   string `json:"member_status"`
 }
 type Controller_memberbanksave struct {
-	Page                    string `json:"page" validate:"required"`
-	Sdata                   string `json:"sdata" validate:"required"`
-	Memberbank_idagenmember string `json:"memberbank_idagenmember" validate:"required"`
-	Memberbank_idbanktype   string `json:"memberbank_idbanktype" validate:"required"`
-	Memberbank_norek        string `json:"memberbank_norek" validate:"required"`
-	Memberbank_nmownerbank  string `json:"memberbank_nmownerbank" validate:"required"`
+	Page                   string `json:"page" validate:"required"`
+	Sdata                  string `json:"sdata" validate:"required"`
+	Memberbank_idmember    string `json:"memberbank_idmember" validate:"required"`
+	Memberbank_idbanktype  string `json:"memberbank_idbanktype" validate:"required"`
+	Memberbank_norek       string `json:"memberbank_norek" validate:"required"`
+	Memberbank_nmownerbank string `json:"memberbank_nmownerbank" validate:"required"`
 }
 type Controller_memberbankdelete struct {
-	Page                    string `json:"page" validate:"required"`
-	Sdata                   string `json:"sdata" validate:"required"`
-	Memberbank_id           int    `json:"memberbank_id" validate:"required"`
-	Memberbank_idagenmember string `json:"memberbank_idagenmember" validate:"required"`
+	Page                string `json:"page" validate:"required"`
+	Sdata               string `json:"sdata" validate:"required"`
+	Memberbank_id       int    `json:"memberbank_id" validate:"required"`
+	Memberbank_idmember string `json:"memberbank_idmember" validate:"required"`
 }
 type Controller_membersharesearch struct {
 	Page   string `json:"page" validate:"required"`

@@ -283,10 +283,10 @@ func MemberBankSave(c *fiber.Ctx) error {
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
 	_, client_idmasteragen, client_admin, _, _ := helpers.Parsing_Decry(temp_decp, "==")
-	//admin, idagenmember, idbanktype, norek, name, sData string, idrecord int
+	//admin, idmasteragen, idmember, idbanktype, norek, name, sData string
 	result, err := models.Save_memberbank(
-		client_admin,
-		client.Memberbank_idagenmember, client.Memberbank_idbanktype,
+		client_admin, client_idmasteragen,
+		client.Memberbank_idmember, client.Memberbank_idbanktype,
 		client.Memberbank_norek, client.Memberbank_nmownerbank,
 		client.Sdata)
 	if err != nil {
@@ -334,8 +334,8 @@ func MemberBankDelete(c *fiber.Ctx) error {
 	name := claims["name"].(string)
 	temp_decp := helpers.Decryption(name)
 	_, client_idmasteragen, _, _, _ := helpers.Parsing_Decry(temp_decp, "==")
-	//idagenmember string, idrecord int
-	result, err := models.Delete_memberbank(client.Memberbank_idagenmember, client.Memberbank_id)
+	//idmember, idmasteragen string, idrecord int
+	result, err := models.Delete_memberbank(client.Memberbank_idmember, client_idmasteragen, client.Memberbank_id)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{

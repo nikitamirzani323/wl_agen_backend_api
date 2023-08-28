@@ -15,9 +15,6 @@ import (
 	"github.com/nleeper/goment"
 )
 
-const database_member_local = configs.DB_tbl_mst_master_agen_member
-const database_memberbank_local = configs.DB_tbl_mst_master_agen_member_bank
-
 func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 	var obj entities.Model_member
 	var arraobj []entities.Model_member
@@ -29,43 +26,45 @@ func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 	ctx := context.Background()
 	start := time.Now()
 
+	tbl_mst_member, tbl_mst_member_bank, _, _ := Get_mappingdatabase(idmasteragen)
+
 	sql_select := `SELECT 
-			idagenmember , username_agenmember, timezone_agenmember,  ipaddress_agenmember, 
-			to_char(COALESCE(lastlogin_agenmember,now()), 'YYYY-MM-DD HH24:MI:SS'), 
-			name_agenmember , phone_agenmember, email_agenmember,  status_agenmember, 
-			(cashin_agenmember-cashout_agenmember) as credit , 
-			create_agenmember, to_char(COALESCE(createdate_agenmember,now()), 'YYYY-MM-DD HH24:MI:SS'), 
-			update_agenmember, to_char(COALESCE(updatedate_agenmember,now()), 'YYYY-MM-DD HH24:MI:SS') 
-			FROM ` + database_member_local + `  
+			idmember , username_member, timezone_member,  ipaddress_member, 
+			to_char(COALESCE(lastlogin_member,now()), 'YYYY-MM-DD HH24:MI:SS'), 
+			name_member , phone_member, email_member,  status_member, 
+			(cashin_member-cashout_member) as credit , 
+			create_member, to_char(COALESCE(createdate_member,now()), 'YYYY-MM-DD HH24:MI:SS'), 
+			update_member, to_char(COALESCE(updatedate_member,now()), 'YYYY-MM-DD HH24:MI:SS') 
+			FROM ` + tbl_mst_member + `  
 			WHERE idmasteragen=$1 
-			ORDER BY lastlogin_agenmember DESC   `
+			ORDER BY lastlogin_member DESC   `
 
 	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
 	helpers.ErrorCheck(err)
 	for row.Next() {
 		var (
-			idagenmember_db, username_agenmember_db, timezone_agenmember_db, ipaddress_agenmember_db, lastlogin_agenmember_db string
-			name_agenmember_db, phone_agenmember_db, email_agenmember_db, status_agenmember_db                                string
-			credit_db                                                                                                         float64
-			create_agenmember_db, createdate_agenmember_db, update_agenmember_db, updatedate_agenmember_db                    string
+			idmember_db, username_member_db, timezone_member_db, ipaddress_member_db, lastlogin_member_db string
+			name_member_db, phone_member_db, email_member_db, status_member_db                            string
+			credit_db                                                                                     float64
+			create_member_db, createdate_member_db, update_member_db, updatedate_member_db                string
 		)
 
-		err = row.Scan(&idagenmember_db, &username_agenmember_db, &timezone_agenmember_db, &ipaddress_agenmember_db, &lastlogin_agenmember_db,
-			&name_agenmember_db, &phone_agenmember_db, &email_agenmember_db, &status_agenmember_db,
+		err = row.Scan(&idmember_db, &username_member_db, &timezone_member_db, &ipaddress_member_db, &lastlogin_member_db,
+			&name_member_db, &phone_member_db, &email_member_db, &status_member_db,
 			&credit_db,
-			&create_agenmember_db, &createdate_agenmember_db, &update_agenmember_db, &updatedate_agenmember_db)
+			&create_member_db, &createdate_member_db, &update_member_db, &updatedate_member_db)
 
 		helpers.ErrorCheck(err)
 		create := ""
 		update := ""
 		status_css := configs.STATUS_CANCEL
-		if create_agenmember_db != "" {
-			create = create_agenmember_db + ", " + createdate_agenmember_db
+		if create_member_db != "" {
+			create = create_member_db + ", " + createdate_member_db
 		}
-		if update_agenmember_db != "" {
-			update = update_agenmember_db + ", " + updatedate_agenmember_db
+		if update_member_db != "" {
+			update = update_member_db + ", " + updatedate_member_db
 		}
-		if status_agenmember_db == "Y" {
+		if status_member_db == "Y" {
 			status_css = configs.STATUS_COMPLETE
 		}
 
@@ -73,23 +72,23 @@ func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 		var objbank entities.Model_memberbank
 		var arraobjbank []entities.Model_memberbank
 		sql_selectbank := `SELECT 
-		idagenmemberbank,idbanktype, norekbank_agenmemberbank, nmownerbank_agenmemberbank 
-			FROM ` + database_memberbank_local + ` 
-			WHERE idagenmember = $1   
+			idmemberbank,idbanktype, norekbank_memberbank, nmownerbank_memberbank 
+			FROM ` + tbl_mst_member_bank + ` 
+			WHERE idmember = $1   
 		`
-		row_bank, err_bank := con.QueryContext(ctx, sql_selectbank, idagenmember_db)
+		row_bank, err_bank := con.QueryContext(ctx, sql_selectbank, idmember_db)
 		helpers.ErrorCheck(err_bank)
 		for row_bank.Next() {
 			var (
-				idagenmemberbank_db                                                       int
-				idbanktype_db, norekbank_agenmemberbank_db, nmownerbank_agenmemberbank_db string
+				idmemberbank_db                                                   int
+				idbanktype_db, norekbank_memberbank_db, nmownerbank_memberbank_db string
 			)
-			err_bank = row_bank.Scan(&idagenmemberbank_db, &idbanktype_db, &norekbank_agenmemberbank_db, &nmownerbank_agenmemberbank_db)
+			err_bank = row_bank.Scan(&idmemberbank_db, &idbanktype_db, &norekbank_memberbank_db, &nmownerbank_memberbank_db)
 
-			objbank.Memberbank_id = idagenmemberbank_db
+			objbank.Memberbank_id = idmemberbank_db
 			objbank.Memberbank_idbanktype = idbanktype_db
-			objbank.Memberbank_nmownerbank = nmownerbank_agenmemberbank_db
-			objbank.Memberbank_norek = norekbank_agenmemberbank_db
+			objbank.Memberbank_nmownerbank = nmownerbank_memberbank_db
+			objbank.Memberbank_norek = norekbank_memberbank_db
 			arraobjbank = append(arraobjbank, objbank)
 		}
 		defer row_bank.Close()
@@ -98,17 +97,17 @@ func Fetch_memberHome(idmasteragen string) (helpers.Responsemember, error) {
 		multiplier := _GetMultiplier(idcurr)
 		var credit float64 = credit_db * float64(multiplier)
 
-		obj.Member_id = idagenmember_db
-		obj.Member_username = username_agenmember_db
-		obj.Member_timezone = timezone_agenmember_db
-		obj.Member_ipaddress = ipaddress_agenmember_db
-		obj.Member_lastlogin = lastlogin_agenmember_db
-		obj.Member_name = name_agenmember_db
-		obj.Member_phone = phone_agenmember_db
-		obj.Member_email = email_agenmember_db
+		obj.Member_id = idmember_db
+		obj.Member_username = username_member_db
+		obj.Member_timezone = timezone_member_db
+		obj.Member_ipaddress = ipaddress_member_db
+		obj.Member_lastlogin = lastlogin_member_db
+		obj.Member_name = name_member_db
+		obj.Member_phone = phone_member_db
+		obj.Member_email = email_member_db
 		obj.Member_credit = credit
 		obj.Member_listbank = arraobjbank
-		obj.Member_status = status_agenmember_db
+		obj.Member_status = status_member_db
 		obj.Member_status_css = status_css
 		obj.Member_create = create
 		obj.Member_update = update
@@ -158,20 +157,21 @@ func Fetch_memberSearch(idmasteragen, search string) (helpers.Response, error) {
 	ctx := context.Background()
 	start := time.Now()
 
+	tbl_mst_member, tbl_mst_member_bank, _, _ := Get_mappingdatabase(idmasteragen)
 	perpage := 50
 
 	sql_select := ""
 	sql_select += ""
 	sql_select += "SELECT "
-	sql_select += "idagenmember , username_agenmember, name_agenmember, "
-	sql_select += "cashin_agenmember , cashout_agenmember "
-	sql_select += "FROM " + database_member_local + "  "
+	sql_select += "idmember , username_member, name_member, "
+	sql_select += "(cashin_member-cashout_member) as credit  "
+	sql_select += "FROM " + tbl_mst_member + "  "
 	if search == "" {
 		sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
 		sql_select += "ORDER BY name_agenmember DESC   LIMIT " + strconv.Itoa(perpage)
 	} else {
 		sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
-		sql_select += "AND LOWER(username_agenmember) LIKE '%" + strings.ToLower(search) + "%' "
+		sql_select += "AND LOWER(username_member) LIKE '%" + strings.ToLower(search) + "%' "
 		sql_select += "ORDER BY name_agenmember DESC LIMIT " + strconv.Itoa(perpage)
 	}
 
@@ -179,42 +179,41 @@ func Fetch_memberSearch(idmasteragen, search string) (helpers.Response, error) {
 	helpers.ErrorCheck(err)
 	for row.Next() {
 		var (
-			idagenmember_db, username_agenmember_db, name_agenmember_db string
-			cashin_agenmember_db, cashout_agenmember_db                 float64
+			idmember_db, username_member_db, name_member_db string
+			credit_db                                       float64
 		)
 
-		err = row.Scan(&idagenmember_db, &username_agenmember_db, &name_agenmember_db,
-			&cashin_agenmember_db, &cashout_agenmember_db)
+		err = row.Scan(&idmember_db, &username_member_db, &name_member_db, &credit_db)
 		helpers.ErrorCheck(err)
 
 		//BANK
 		var objbank entities.Model_memberbankshare
 		var arraobjbank []entities.Model_memberbankshare
 		sql_selectbank := `SELECT 
-			idagenmemberbank,idbanktype, norekbank_agenmemberbank, nmownerbank_agenmemberbank 
-			FROM ` + database_memberbank_local + ` 
-			WHERE idagenmember = $1   
+			idmemberbank,idbanktype, norekbank_memberbank, nmownerbank_memberbank  
+			FROM ` + tbl_mst_member_bank + ` 
+			WHERE idmember = $1   
 		`
-		row_bank, err_bank := con.QueryContext(ctx, sql_selectbank, idagenmember_db)
+		row_bank, err_bank := con.QueryContext(ctx, sql_selectbank, idmember_db)
 		helpers.ErrorCheck(err_bank)
 		for row_bank.Next() {
 			var (
-				idagenmemberbank_db                                                       int
-				idbanktype_db, norekbank_agenmemberbank_db, nmownerbank_agenmemberbank_db string
+				idmemberbank_db                                                   int
+				idbanktype_db, norekbank_memberbank_db, nmownerbank_memberbank_db string
 			)
-			err_bank = row_bank.Scan(&idagenmemberbank_db, &idbanktype_db, &norekbank_agenmemberbank_db, &nmownerbank_agenmemberbank_db)
+			err_bank = row_bank.Scan(&idmemberbank_db, &idbanktype_db, &norekbank_memberbank_db, &nmownerbank_memberbank_db)
 
-			objbank.Memberbank_id = idagenmemberbank_db
-			objbank.Memberbank_info = idbanktype_db + "-" + norekbank_agenmemberbank_db + "-" + nmownerbank_agenmemberbank_db
+			objbank.Memberbank_id = idmemberbank_db
+			objbank.Memberbank_info = idbanktype_db + "-" + norekbank_memberbank_db + "-" + nmownerbank_memberbank_db
 			arraobjbank = append(arraobjbank, objbank)
 		}
 		defer row_bank.Close()
 		idcurr := _GetDefaultCurr(idmasteragen)
 		multiplier := _GetMultiplier(idcurr)
-		var credit float64 = (cashin_agenmember_db - cashout_agenmember_db) * float64(multiplier)
+		var credit float64 = credit_db * float64(multiplier)
 
-		obj.Member_id = idagenmember_db
-		obj.Member_name = username_agenmember_db + "-" + name_agenmember_db
+		obj.Member_id = idmember_db
+		obj.Member_name = username_member_db + "-" + name_member_db
 		obj.Member_credit = credit
 		obj.Member_listbank = arraobjbank
 		arraobj = append(arraobj, obj)
@@ -237,16 +236,17 @@ func Save_member(admin, idmaster, idmasteragen, username, password, name, phone,
 	render_page := time.Now()
 	flag := false
 
+	tbl_mst_member, _, _, _ := Get_mappingdatabase(idmasteragen)
 	if sData == "New" {
-		flag = CheckDB(database_member_local, "username_agenmember", username)
+		flag = CheckDB(tbl_mst_member, "username_member", username)
 		if !flag {
 			sql_insert := `
 				insert into
-				` + database_member_local + ` (
-					idagenmember , idmaster, idmasteragen,
-					username_agenmember, password_agenmember, lastlogin_agenmember, 
-					name_agenmember, phone_agenmember,email_agenmember,status_agenmember,
-					create_agenmember, createdate_agenmember   
+				` + tbl_mst_member + ` (
+					idmember , idmaster, idmasteragen,
+					username_member, password_member, lastlogin_member, 
+					name_member, phone_member,email_member,status_member,
+					create_member, createdate_member   
 				) values (
 					$1, $2, $3,   
 					$4, $5, $6,   
@@ -254,11 +254,11 @@ func Save_member(admin, idmaster, idmasteragen, username, password, name, phone,
 					$11, $12
 				)
 			`
-			field_column := database_member_local + tglnow.Format("YYYY")
+			field_column := tbl_mst_member + tglnow.Format("YYYY")
 			idrecord_counter := Get_counter(field_column)
 			hashpass := helpers.HashPasswordMD5(password)
 			create_date := tglnow.Format("YYYY-MM-DD HH:mm:ss")
-			flag_insert, msg_insert := Exec_SQL(sql_insert, database_member_local, "INSERT",
+			flag_insert, msg_insert := Exec_SQL(sql_insert, tbl_mst_member, "INSERT",
 				idmasteragen+"MBR"+tglnow.Format("YY")+tglnow.Format("MM")+tglnow.Format("DD")+tglnow.Format("HH")+strconv.Itoa(idrecord_counter), idmaster, idmasteragen,
 				username, hashpass, create_date,
 				name, phone, email, status,
@@ -273,17 +273,20 @@ func Save_member(admin, idmaster, idmasteragen, username, password, name, phone,
 			msg = "Duplicate Username"
 		}
 	} else {
+		// idmember , idmaster, idmasteragen,
+		// username_member, password_member, lastlogin_member,
+		// name_member, phone_member,email_member,status_member,
 		if password == "" {
 			sql_update := `
 				UPDATE 
-				` + database_member_local + `  
-				SET name_agenmember=$1, phone_agenmember=$2, email_agenmember=$3,
-				status_agenmember=$4,    
-				update_agenmember=$5, updatedate_agenmember=$6      
-				WHERE idagenmember=$7    
+				` + tbl_mst_member + `  
+				SET name_member=$1, phone_member=$2, email_member=$3,
+				status_member=$4,    
+				update_member=$5, updatedate_member=$6      
+				WHERE idmember=$7    
 			`
 
-			flag_update, msg_update := Exec_SQL(sql_update, database_member_local, "UPDATE",
+			flag_update, msg_update := Exec_SQL(sql_update, tbl_mst_member, "UPDATE",
 				name, phone, email, status,
 				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord)
 
@@ -296,14 +299,14 @@ func Save_member(admin, idmaster, idmasteragen, username, password, name, phone,
 			hashpass := helpers.HashPasswordMD5(password)
 			sql_update := `
 				UPDATE 
-				` + database_member_local + `  
-				SET password_agenmember=$1, name_agenmember=$2, phone_agenmember=$3, email_agenmember=$4, 
-				status_agenmember=$5,     
-				update_agenmember=$6, updatedate_agenmember=$7       
-				WHERE idagenmember=$8     
+				` + tbl_mst_member + `  
+				SET password_member=$1, name_member=$2, phone_member=$3, email_member=$4, 
+				status_member=$5,     
+				update_member=$6, updatedate_member=$7       
+				WHERE idmember=$8     
 			`
 
-			flag_update, msg_update := Exec_SQL(sql_update, database_member_local, "UPDATE",
+			flag_update, msg_update := Exec_SQL(sql_update, tbl_mst_member, "UPDATE",
 				hashpass, name, phone, email, status,
 				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord)
 
@@ -322,30 +325,30 @@ func Save_member(admin, idmaster, idmasteragen, username, password, name, phone,
 
 	return res, nil
 }
-func Save_memberbank(admin, idagenmember, idbanktype, norek, name, sData string) (helpers.Response, error) {
+func Save_memberbank(admin, idmasteragen, idmember, idbanktype, norek, name, sData string) (helpers.Response, error) {
 	var res helpers.Response
 	msg := "Failed"
 	tglnow, _ := goment.New()
 	render_page := time.Now()
 
+	_, tbl_mst_member_bank, _, _ := Get_mappingdatabase(idmasteragen)
 	if sData == "New" {
 		sql_insert := `
 			insert into
-			` + database_memberbank_local + ` (
-				idagenmemberbank , idagenmember, 
-				idbanktype, norekbank_agenmemberbank, nmownerbank_agenmemberbank, 
-				create_agenmemberbank, createdate_agenmemberbank    
+			` + tbl_mst_member_bank + ` (
+				idmemberbank , idmember, 
+				idbanktype, norekbank_memberbank, nmownerbank_memberbank, 
+				create_memberbank, createdate_memberbank     
 			) values (
 				$1, $2,    
 				$3, $4, $5,    
 				$6, $7
 			)
 		`
-		field_column := database_memberbank_local + tglnow.Format("YYYY")
+		field_column := tbl_mst_member_bank + tglnow.Format("YYYY")
 		idrecord_counter := Get_counter(field_column)
-		flag_insert, msg_insert := Exec_SQL(sql_insert, database_memberbank_local, "INSERT",
-			tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idagenmember, idbanktype,
-			norek, name,
+		flag_insert, msg_insert := Exec_SQL(sql_insert, tbl_mst_member_bank, "INSERT",
+			tglnow.Format("YY")+strconv.Itoa(idrecord_counter), idmember, idbanktype, norek, name,
 			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
 
 		if flag_insert {
@@ -362,17 +365,18 @@ func Save_memberbank(admin, idagenmember, idbanktype, norek, name, sData string)
 
 	return res, nil
 }
-func Delete_memberbank(idagenmember string, idrecord int) (helpers.Response, error) {
+func Delete_memberbank(idmember, idmasteragen string, idrecord int) (helpers.Response, error) {
 	var res helpers.Response
 	msg := "Failed"
 	render_page := time.Now()
 
+	_, tbl_mst_member_bank, _, _ := Get_mappingdatabase(idmasteragen)
 	sql_delete := `
 				DELETE FROM
-				` + database_memberbank_local + ` 
-				WHERE idagenmemberbank=$1 AND idagenmember=$2  
+				` + tbl_mst_member_bank + ` 
+				WHERE idmemberbank=$1 AND idmember=$2  
 			`
-	flag_delete, msg_delete := Exec_SQL(sql_delete, database_memberbank_local, "DELETE", idrecord, idagenmember)
+	flag_delete, msg_delete := Exec_SQL(sql_delete, tbl_mst_member_bank, "DELETE", idrecord, idmember)
 
 	if !flag_delete {
 		fmt.Println(msg_delete)
