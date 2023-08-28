@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -170,40 +169,27 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 			fmt.Println(msg_insert)
 		}
 	} else {
-		sql_update := `
+		if tipedoc == "WITDRAW" {
+			sql_update := `
 				UPDATE 
 				` + tbl_trx_dpwd + `  
-				SET tipedoc_dpwd=$1, tipeakun_dpwd=$2,   
-				idagenmember=$3, bank_int=$4, bank_out=$5, note_bank=$6,      
-				amount_dpwd=$7, before_dpwd=$8, after_dpwd=$9, status_dpwd=$10, note_dpwd=$11,     
-				update_dpwd=$12, updatedate_dpwd=$13     
-				WHERE iddpwd=$14  AND idmasteragen=$15  
+				SET bank_out=$1, bank_out_info=$2,    
+				update_dpwd=$3, updatedate_dpwd=$4      
+				WHERE iddpwd=$5  AND idmasteragen=$6   
 			`
+			temp_bank_out := _GetInfoBank(idmasteragen, idmember, "AGEN", bank_out)
 
-		tipeakun_dpwd := ""
-		note_bank := "FROM: BANK OUT - TO: BANK IN"
-		switch tipedoc {
-		case "DEPOSIT":
-			tipeakun_dpwd = "IN"
-		case "WITHDRAW":
-			tipeakun_dpwd = "OUT"
-		case "BONUS":
-			tipeakun_dpwd = "OUT"
+			flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
+				bank_out, temp_bank_out,
+				admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord, idmasteragen)
+
+			if flag_update {
+				msg = "Succes"
+			} else {
+				fmt.Println(msg_update)
+			}
 		}
-		before := 0
-		after := 0
 
-		flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
-			tipedoc, tipeakun_dpwd,
-			idmember, bank_in, bank_out, note_bank,
-			amount, before, after, status, note_dpwd,
-			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idrecord)
-
-		if flag_update {
-			msg = "Succes"
-		} else {
-			fmt.Println(msg_update)
-		}
 	}
 
 	res.Status = fiber.StatusOK
@@ -229,6 +215,7 @@ func Update_statustransdpwd(admin, idrecord, idmasteragen, idmaster, idmember, n
 			var credit_member float64 = cash_in - cash_out
 			var before float64 = 0
 			var after float64 = 0
+			fmt.Println("CREDIT :", credit_member)
 			tipeakun := ""
 			switch tipe {
 			case "DEPOSIT":
@@ -241,7 +228,7 @@ func Update_statustransdpwd(admin, idrecord, idmasteragen, idmaster, idmember, n
 				tipeakun = "OUT"
 				if amount > credit_member {
 					flag = false
-					log.Println("The Amount exceed Credit Member")
+					fmt.Println("The Amount exceed Credit Member")
 				}
 			}
 			if flag {
@@ -261,6 +248,8 @@ func Update_statustransdpwd(admin, idrecord, idmasteragen, idmaster, idmember, n
 					flag := _Save_transaksi(admin, idrecord, idmasteragen, idmaster, idcurr, "TRANSAKSI", tipeakun, idmember, amount, before, after)
 					if flag {
 						_Save_creditmember(admin, idmember, idmasteragen, tipeakun, amount)
+						//UPDATE CREDIT AGEN + MASTER
+						_Save_creditagenandmaster(admin, idmasteragen, tipeakun, amount)
 					}
 				} else {
 					fmt.Println(msg_update)
@@ -302,7 +291,7 @@ func _Save_transaksi(admin, iddpwd, idmasteragen, idmaster, idcurr, tipedoc, tip
 	tglnow, _ := goment.New()
 	_, tbl_trx_transaksi := Get_mappingdatabase(idmasteragen)
 	flag := false
-
+	tbl_trx_dpwd, _ := Get_mappingdatabase(idmasteragen)
 	sql_insert := `
 				insert into
 				` + tbl_trx_transaksi + ` (
@@ -329,7 +318,24 @@ func _Save_transaksi(admin, iddpwd, idmasteragen, idmaster, idcurr, tipedoc, tip
 		admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"))
 
 	if flag_insert {
-		flag = true
+		//update document tbl_trx_dpwd
+		sql_update := `
+				UPDATE 
+				` + tbl_trx_dpwd + `  
+				SET connect_idtransaksi=$1, connect_createtransaksi=$2,  connect_createdatetransaksi=$3, 
+				update_dpwd=$4, updatedate_dpwd=$5   
+				WHERE iddpwd=$6  AND idmasteragen=$7    
+			`
+
+		flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
+			idtransaksi, "SYSTEM", tglnow.Format("YYYY-MM-DD HH:mm:ss"),
+			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), iddpwd, idmasteragen)
+
+		if flag_update {
+			flag = true
+		} else {
+			fmt.Println(msg_update)
+		}
 	} else {
 		fmt.Println(msg_insert)
 	}
@@ -360,6 +366,59 @@ func _Save_creditmember(admin, idmember, idmasteragen, tipe string, amount float
 		c_in, c_out,
 		admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmember, idmasteragen)
 	if !flag_update {
+		fmt.Println(msg_update)
+	}
+}
+func _Save_creditagenandmaster(admin, idmasteragen, tipe string, amount float64) {
+	tglnow, _ := goment.New()
+
+	c_in_db, c_out_db, idmaster_db := _GetAgenCredit(idmasteragen)
+	var c_in float64 = 0
+	var c_out float64 = 0
+	if tipe == "IN" {
+		c_in = c_in_db + amount
+		c_out = c_out_db
+	} else {
+		c_in = c_in_db
+		c_out = c_out_db + amount
+	}
+	sql_update := `
+		UPDATE 
+		` + configs.DB_tbl_mst_master_agen + `  
+		SET agencredit_in=$1, agencredit_out=$2, 
+		updatemasteragen=$3, updatedatemasteragen=$4 
+		WHERE idmasteragen=$5   
+	`
+
+	flag_update, msg_update := Exec_SQL(sql_update, configs.DB_tbl_mst_master_agen, "UPDATE",
+		c_in, c_out,
+		admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmasteragen)
+	if flag_update {
+		master_in_db, master_out_db := _GetMasterCredit(idmaster_db)
+		var master_in float64 = 0
+		var master_out float64 = 0
+		if tipe == "IN" {
+			master_in = master_in_db + amount
+			master_out = master_out_db
+		} else {
+			master_in = master_in_db
+			master_out = master_out_db + amount
+		}
+		sql_updatemaster := `
+			UPDATE 
+			` + configs.DB_tbl_mst_master + `  
+			SET mastercredit_in=$1, mastercredit_out=$2, 
+			updatemaster=$3, updatedatemaster=$4 
+			WHERE idmaster=$5   
+		`
+		flag_updatemaster, msg_updatemaster := Exec_SQL(sql_updatemaster, configs.DB_tbl_mst_master, "UPDATE",
+			master_in, master_out,
+			admin, tglnow.Format("YYYY-MM-DD HH:mm:ss"), idmaster_db)
+		if flag_updatemaster {
+		} else {
+			fmt.Println(msg_updatemaster)
+		}
+	} else {
 		fmt.Println(msg_update)
 	}
 }
@@ -489,6 +548,47 @@ func _GetMemberCredit(idmasteragen, idagenmember string) (float64, float64) {
 		WHERE idagenmember=$1 AND idmasteragen=$2
 	`
 	row := con.QueryRowContext(ctx, sql_select, idagenmember, idmasteragen)
+	switch e := row.Scan(&cash_in_db, &cash_out_db); e {
+	case sql.ErrNoRows:
+	case nil:
+	default:
+		helpers.ErrorCheck(e)
+	}
+	return float64(cash_in_db), float64(cash_out_db)
+}
+func _GetAgenCredit(idmasteragen string) (float64, float64, string) {
+	con := db.CreateCon()
+	ctx := context.Background()
+	cash_in_db := 0
+	cash_out_db := 0
+	idmaster_db := ""
+
+	sql_select := `SELECT
+		agencredit_in, agencredit_out, idmaster    
+		FROM ` + configs.DB_tbl_mst_master_agen + `  
+		WHERE idmasteragen=$1 
+	`
+	row := con.QueryRowContext(ctx, sql_select, idmasteragen)
+	switch e := row.Scan(&cash_in_db, &cash_out_db, &idmaster_db); e {
+	case sql.ErrNoRows:
+	case nil:
+	default:
+		helpers.ErrorCheck(e)
+	}
+	return float64(cash_in_db), float64(cash_out_db), idmaster_db
+}
+func _GetMasterCredit(idmaster string) (float64, float64) {
+	con := db.CreateCon()
+	ctx := context.Background()
+	cash_in_db := 0
+	cash_out_db := 0
+
+	sql_select := `SELECT
+		mastercredit_in, mastercredit_out   
+		FROM ` + configs.DB_tbl_mst_master + `  
+		WHERE idmaster=$1 
+	`
+	row := con.QueryRowContext(ctx, sql_select, idmaster)
 	switch e := row.Scan(&cash_in_db, &cash_out_db); e {
 	case sql.ErrNoRows:
 	case nil:

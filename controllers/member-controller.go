@@ -351,5 +351,5 @@ func MemberBankDelete(c *fiber.Ctx) error {
 func _deleteredis_member(idmasteragen string) {
 	val_master := helpers.DeleteRedis(Fieldmember_home_redis + "_" + idmasteragen)
 	log.Printf("Redis Delete AGEN MEMBER : %d", val_master)
-
+	fmt.Println()
 }
