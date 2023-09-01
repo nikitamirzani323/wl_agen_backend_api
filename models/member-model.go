@@ -168,11 +168,11 @@ func Fetch_memberSearch(idmasteragen, search string) (helpers.Response, error) {
 	sql_select += "FROM " + tbl_mst_member + "  "
 	if search == "" {
 		sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
-		sql_select += "ORDER BY name_agenmember DESC   LIMIT " + strconv.Itoa(perpage)
+		sql_select += "ORDER BY name_member DESC   LIMIT " + strconv.Itoa(perpage)
 	} else {
 		sql_select += "WHERE idmasteragen = '" + idmasteragen + "' "
 		sql_select += "AND LOWER(username_member) LIKE '%" + strings.ToLower(search) + "%' "
-		sql_select += "ORDER BY name_agenmember DESC LIMIT " + strconv.Itoa(perpage)
+		sql_select += "ORDER BY name_member DESC LIMIT " + strconv.Itoa(perpage)
 	}
 
 	row, err := con.QueryContext(ctx, sql_select)
