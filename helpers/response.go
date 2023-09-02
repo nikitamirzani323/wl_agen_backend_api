@@ -21,6 +21,14 @@ type Responsemember struct {
 	Listbank interface{} `json:"listbank"`
 	Time     string      `json:"time"`
 }
+type Responsemembercredit struct {
+	Status        int     `json:"status"`
+	Message       string  `json:"message"`
+	Member_id     string  `json:"member_id"`
+	Member_name   string  `json:"member_name"`
+	Member_credit float64 `json:"member_credit"`
+	Time          string  `json:"time"`
+}
 type Responsemaster struct {
 	Status   int         `json:"status"`
 	Message  string      `json:"message"`

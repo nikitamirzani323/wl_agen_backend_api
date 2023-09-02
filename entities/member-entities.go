@@ -22,6 +22,7 @@ type Model_membershare struct {
 	Member_credit   float64     `json:"member_credit"`
 	Member_listbank interface{} `json:"member_listbank"`
 }
+
 type Model_memberbank struct {
 	Memberbank_id          int    `json:"memberbank_id"`
 	Memberbank_idbanktype  string `json:"memberbank_idbanktype"`

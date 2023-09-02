@@ -228,6 +228,57 @@ func Fetch_memberSearch(idmasteragen, search string) (helpers.Response, error) {
 
 	return res, nil
 }
+func Fetch_memberByIdCreditHome(idmember, idmasteragen string) (helpers.Responsemembercredit, error) {
+	var res helpers.Responsemembercredit
+	msg := "Data Not Found"
+	con := db.CreateCon()
+	ctx := context.Background()
+	start := time.Now()
+
+	tbl_mst_member, _, _, _ := Get_mappingdatabase(idmasteragen)
+
+	var member_id string = ""
+	var member_name string = ""
+	var member_credit float64 = 0
+	sql_select := `SELECT 
+			idmember , name_member , (cashin_member-cashout_member) as credit 
+			FROM ` + tbl_mst_member + `  
+			WHERE idmember=$1 
+			AND status_member='Y'  `
+
+	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
+	helpers.ErrorCheck(err)
+	for row.Next() {
+		var (
+			idmember_db, name_member_db string
+			credit_db                   float64
+		)
+
+		err = row.Scan(&idmember_db, &name_member_db, &credit_db)
+
+		helpers.ErrorCheck(err)
+
+		idcurr := _GetDefaultCurr(idmasteragen)
+		multiplier := _GetMultiplier(idcurr)
+		var credit float64 = credit_db * float64(multiplier)
+
+		member_id = idmember_db
+		member_name = name_member_db
+		member_credit = credit
+
+		msg = "Success"
+	}
+	defer row.Close()
+
+	res.Status = fiber.StatusOK
+	res.Message = msg
+	res.Member_id = member_id
+	res.Member_name = member_name
+	res.Member_credit = member_credit
+	res.Time = time.Since(start).String()
+
+	return res, nil
+}
 
 func Save_member(admin, idmaster, idmasteragen, username, password, name, phone, email, status, sData, idrecord string) (helpers.Response, error) {
 	var res helpers.Response
