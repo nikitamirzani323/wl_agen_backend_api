@@ -64,3 +64,8 @@ type Controller_membersharesearch struct {
 	Sdata  string `json:"sdata" validate:"required"`
 	Search string `json:"search" `
 }
+type Controller_membercredit struct {
+	Page     string `json:"page" validate:"required"`
+	Sdata    string `json:"sdata" validate:"required"`
+	Idmember string `json:"idmember" validate:"required"`
+}

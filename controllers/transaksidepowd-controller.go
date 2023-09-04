@@ -207,7 +207,10 @@ func _deleteredis_transdpwd(idmasteragen string) {
 	val_master := helpers.DeleteRedis(Fieldtransdpwd_home_redis + "_" + idmasteragen)
 	fmt.Printf("Redis Delete AGEN TRANSAKSI DEPO WD : %d\n", val_master)
 
-	val_member := helpers.DeleteRedis(Fieldmember_home_redis + "_" + idmasteragen + "_")
+	val_member := helpers.DeleteRedis(Fieldmember_home_redis + "_" + idmasteragen)
 	fmt.Printf("Redis Delete AGEN MEMBER : %d\n", val_member)
+
+	val_membersearch := helpers.DeleteRedis(Fieldmember_home_redis + "_" + idmasteragen + "_")
+	fmt.Printf("Redis Delete AGEN MEMBER : %d\n", val_membersearch)
 
 }

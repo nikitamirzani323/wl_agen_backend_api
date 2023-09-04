@@ -199,6 +199,73 @@ func Membersearch(c *fiber.Ctx) error {
 		})
 	}
 }
+func MemberByIdCreditHome(c *fiber.Ctx) error {
+	var errors []*helpers.ErrorResponse
+	client := new(entities.Controller_membercredit)
+	validate := validator.New()
+	if err := c.BodyParser(client); err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": err.Error(),
+			"record":  nil,
+		})
+	}
+
+	err := validate.Struct(client)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			var element helpers.ErrorResponse
+			element.Field = err.StructField()
+			element.Tag = err.Tag()
+			errors = append(errors, &element)
+		}
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"status":  fiber.StatusBadRequest,
+			"message": "validation",
+			"record":  errors,
+		})
+	}
+
+	user := c.Locals("jwt").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	name := claims["name"].(string)
+	temp_decp := helpers.Decryption(name)
+	_, client_idmasteragen, _, _, _ := helpers.Parsing_Decry(temp_decp, "==")
+
+	render_page := time.Now()
+	resultredis, flag := helpers.GetRedis(Fieldmember_home_redis + "_CREDIT_" + client_idmasteragen + "_" + client.Idmember)
+	jsonredis := []byte(resultredis)
+	member_id, _ := jsonparser.GetString(jsonredis, "member_id")
+	member_name, _ := jsonparser.GetString(jsonredis, "member_name")
+	member_credit, _ := jsonparser.GetFloat(jsonredis, "member_credit")
+
+	if !flag {
+		result, err := models.Fetch_memberByIdCreditHome(client.Idmember, client_idmasteragen)
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"status":  fiber.StatusBadRequest,
+				"message": err.Error(),
+				"record":  nil,
+			})
+		}
+		helpers.SetRedis(Fieldmember_home_redis+"_CREDIT_"+client_idmasteragen+"_"+client.Idmember, result, 3*time.Minute)
+		fmt.Println("MEMBER CREDIT AGEN MYSQL")
+		return c.JSON(result)
+	} else {
+		fmt.Println("MEMBER CREDIT AGEN CACHE")
+		return c.JSON(fiber.Map{
+			"status":        fiber.StatusOK,
+			"message":       "Success",
+			"member_id":     member_id,
+			"member_name":   member_name,
+			"member_credit": float64(member_credit),
+			"time":          time.Since(render_page).String(),
+		})
+	}
+}
 func MemberSave(c *fiber.Ctx) error {
 	var errors []*helpers.ErrorResponse
 	client := new(entities.Controller_membersave)

@@ -246,7 +246,7 @@ func Fetch_memberByIdCreditHome(idmember, idmasteragen string) (helpers.Response
 			WHERE idmember=$1 
 			AND status_member='Y'  `
 
-	row, err := con.QueryContext(ctx, sql_select, idmasteragen)
+	row, err := con.QueryContext(ctx, sql_select, idmember)
 	helpers.ErrorCheck(err)
 	for row.Next() {
 		var (

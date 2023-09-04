@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -169,7 +170,7 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 			fmt.Println(msg_insert)
 		}
 	} else {
-		if tipedoc == "WITDRAW" {
+		if tipedoc == "WITHDRAW" {
 			sql_update := `
 				UPDATE 
 				` + tbl_trx_dpwd + `  
@@ -177,6 +178,7 @@ func Save_transdpwd(admin, idrecord, idmasteragen, idmaster, tipedoc, idmember, 
 				update_dpwd=$3, updatedate_dpwd=$4      
 				WHERE iddpwd=$5  AND idmasteragen=$6   
 			`
+			log.Println(idrecord)
 			temp_bank_out := _GetInfoBank(idmasteragen, idmember, "AGEN", tbl_mst_member_bank, bank_out)
 
 			flag_update, msg_update := Exec_SQL(sql_update, tbl_trx_dpwd, "UPDATE",
